@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123c2d">
+    <title>Court Radar — South London tennis availability</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    >
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Court Radar home">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span>Court Radar</span>
+      </a>
+      <p class="strapline">South London tennis availability, without the tab safari.</p>
+      <p class="live-note"><span class="pulse"></span><span id="freshness">Checking courts…</span></p>
+    </header>
+
+    <main>
+      <section class="control-bar" aria-label="Availability controls">
+        <div class="date-control">
+          <button id="previous-day" class="icon-button" type="button" aria-label="Previous day">←</button>
+          <label>
+            <span>Date</span>
+            <input id="date" type="date">
+          </label>
+          <button id="next-day" class="icon-button" type="button" aria-label="Next day">→</button>
+        </div>
+
+        <label class="select-control">
+          <span>Location</span>
+          <select id="location-filter">
+            <option value="all">All locations</option>
+          </select>
+        </label>
+
+        <label class="select-control">
+          <span>Surface</span>
+          <select id="surface-filter">
+            <option value="all">All surfaces</option>
+            <option value="hard">Hard courts</option>
+            <option value="carpet">Carpet courts</option>
+          </select>
+        </label>
+
+        <div class="view-toggle" aria-label="View">
+          <button class="view-button active" data-view="grid" type="button">Grid</button>
+          <button class="view-button" data-view="map" type="button">Map</button>
+        </div>
+
+        <button id="refresh" class="refresh-button" type="button">Refresh</button>
+      </section>
+
+      <section class="summary" aria-live="polite">
+        <div>
+          <strong id="slot-count">—</strong>
+          <span>open court-hours</span>
+        </div>
+        <div>
+          <strong id="court-count">—</strong>
+          <span>courts with space</span>
+        </div>
+        <p id="best-bet">Hunting for the best bet…</p>
+      </section>
+
+      <div id="notice" class="notice" hidden></div>
+      <div id="availability" class="availability" aria-live="polite"></div>
+      <section id="map-view" class="map-view" hidden aria-label="Court locations map">
+        <div class="map-key">
+          <span><i class="key-dot open"></i> Has availability</span>
+          <span><i class="key-dot full"></i> No availability</span>
+        </div>
+        <div id="map" class="map"></div>
+      </section>
+    </main>
+
+    <template id="location-template">
+      <section class="location-card">
+        <header class="location-heading">
+          <div>
+            <span class="location-code"></span>
+            <div>
+              <h2></h2>
+              <span class="booking-rule"></span>
+              <span class="premium-rule"></span>
+              <span class="pricing-rule"></span>
+            </div>
+          </div>
+          <div class="location-actions">
+            <p></p>
+            <a class="venue-booking-link" target="_blank" rel="noreferrer">Booking site ↗</a>
+          </div>
+        </header>
+        <div class="grid-scroller">
+          <div class="court-grid"></div>
+        </div>
+      </section>
+    </template>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+      defer
+    ></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
