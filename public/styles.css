@@ -9,8 +9,9 @@
   --acid: #d9ff5f;
   --orange: #ff7448;
   --blue: #cce7ff;
+  --location: 290px;
   --slot: 54px;
-  --court: 172px;
+  --court: 132px;
 }
 
 * { box-sizing: border-box; }
@@ -221,12 +222,9 @@ main {
   font-size: 12px;
 }
 
-.availability {
-  display: grid;
-  gap: 14px;
-}
+.availability { display: block; }
 
-.location-card {
+.continuous-card {
   scroll-margin-top: 100px;
   overflow: hidden;
   border: 1px solid rgba(21, 55, 44, .24);
@@ -234,45 +232,35 @@ main {
   background: var(--card);
 }
 
-.location-heading {
-  min-height: 68px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 13px 18px;
-  border-bottom: 1px solid var(--line);
-}
-
-.location-heading > div:first-child {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.location-code {
+.provider-mark {
   display: grid;
-  min-width: 42px;
-  height: 29px;
+  width: 42px;
+  height: 42px;
   place-items: center;
-  padding: 0 7px;
-  border-radius: 7px;
-  background: var(--ink);
-  color: var(--acid);
-  font-size: 10px;
-  font-weight: 900;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(21, 55, 44, .16);
+  border-radius: 10px;
+  background: white;
 }
 
-.location-heading h2 {
-  overflow: hidden;
+.provider-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.location-copy {
+  min-width: 0;
+}
+
+.location-copy h2 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 400;
   letter-spacing: -.025em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .booking-rule, .premium-rule, .pricing-rule {
@@ -292,37 +280,83 @@ main {
   font-weight: 700;
 }
 
-.location-actions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.location-heading p {
-  margin: 0;
+.location-status {
+  display: block;
+  margin-top: 7px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 
-.location-heading p[title] {
+.location-info[title] .location-status {
   color: #9b4a2f;
   cursor: help;
   font-weight: 700;
 }
 
 .venue-booking-link {
+  display: inline-block;
+  margin-top: 4px;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-underline-offset: 3px;
+}
+
+.provider-rules {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: #f7f5ee;
+}
+
+.provider-rules-title {
+  display: flex;
+  width: 140px;
+  flex: 0 0 140px;
+  align-items: center;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.provider-rule {
+  min-width: 230px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-left: 1px solid var(--line);
+}
+
+.provider-rule strong,
+.provider-rule > div > span {
+  display: block;
+}
+
+.provider-rule strong {
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+
+.provider-rule > div > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.provider-rule .premium-rule {
+  color: #9b4a2f;
+  font-weight: 700;
 }
 
 .grid-scroller { overflow-x: auto; }
 
 .court-grid {
   display: grid;
-  grid-template-columns: var(--court) repeat(16, var(--slot));
   width: max-content;
   min-width: 100%;
 }
@@ -339,7 +373,7 @@ main {
 .time-label {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 4;
   min-height: 34px;
   background: #f7f5ee;
   color: var(--muted);
@@ -347,17 +381,31 @@ main {
   font-weight: 800;
 }
 
-.corner, .court-name {
+.location-corner,
+.location-info {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 6;
   justify-items: start;
   padding-left: 14px;
   background: var(--card);
   box-shadow: 1px 0 0 var(--line);
 }
 
-.corner {
+.court-corner,
+.court-name {
+  position: sticky;
+  left: var(--location);
+  z-index: 5;
+  justify-items: start;
+  padding-left: 14px;
+  background: var(--card);
+  box-shadow: 1px 0 0 var(--line);
+}
+
+.location-corner,
+.court-corner {
+  z-index: 8;
   background: #f7f5ee;
   color: var(--muted);
   font-size: 9px;
@@ -366,9 +414,21 @@ main {
   text-transform: uppercase;
 }
 
+.location-info {
+  align-content: start;
+  grid-template-columns: 42px minmax(0, 1fr);
+  column-gap: 11px;
+  padding: 13px 14px;
+  border-right: 1px solid var(--line);
+}
+
 .court-name {
   line-height: 1.2;
   font-weight: 750;
+}
+
+.group-divider {
+  border-top: 3px solid var(--ink);
 }
 
 .surface {
@@ -557,6 +617,7 @@ main {
 }
 
 @media (max-width: 900px) {
+  :root { --location: 245px; --court: 124px; }
   .masthead { grid-template-columns: 1fr auto; }
   .strapline { display: none; }
   .control-bar { grid-template-columns: 1fr 1fr; }
@@ -564,6 +625,8 @@ main {
   .view-toggle, .refresh-button { min-height: 48px; }
   .summary { grid-template-columns: 1fr 1fr; gap: 14px; }
   .summary p { grid-column: 1 / -1; justify-self: start; }
+  .provider-rules { overflow-x: auto; }
+  .provider-rules-title { width: 120px; flex-basis: 120px; }
   .map { min-height: 500px; height: 65vh; }
 }
 
@@ -577,11 +640,15 @@ main {
   .summary { margin: 17px 8px 12px; }
   .summary div { display: block; }
   .summary strong, .summary span { display: block; }
-  .location-heading { align-items: flex-start; padding: 12px; }
-  .location-heading h2 { max-width: 180px; font-size: 19px; }
-  .location-actions { display: block; text-align: right; }
-  .venue-booking-link { display: inline-block; margin-top: 6px; }
-  :root { --court: 136px; --slot: 47px; }
+  :root { --location: 210px; --court: 112px; --slot: 47px; }
+  .location-info {
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+    padding: 11px;
+  }
+  .provider-rules-title { display: none; }
+  .provider-rule:first-of-type { border-left: 0; }
+  .location-copy h2 { font-size: 17px; }
   .map-key { justify-content: flex-start; }
   .map { min-height: 460px; height: 68vh; }
 }

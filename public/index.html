@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123c2d">
     <title>Court Radar — South London tennis availability</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -79,29 +80,6 @@
         <div id="map" class="map"></div>
       </section>
     </main>
-
-    <template id="location-template">
-      <section class="location-card">
-        <header class="location-heading">
-          <div>
-            <span class="location-code"></span>
-            <div>
-              <h2></h2>
-              <span class="booking-rule"></span>
-              <span class="premium-rule"></span>
-              <span class="pricing-rule"></span>
-            </div>
-          </div>
-          <div class="location-actions">
-            <p></p>
-            <a class="venue-booking-link" target="_blank" rel="noreferrer">Booking site ↗</a>
-          </div>
-        </header>
-        <div class="grid-scroller">
-          <div class="court-grid"></div>
-        </div>
-      </section>
-    </template>
 
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

@@ -24,7 +24,6 @@ const elements = {
   courtCount: document.querySelector("#court-count"),
   bestBet: document.querySelector("#best-bet"),
   notice: document.querySelector("#notice"),
-  template: document.querySelector("#location-template"),
   viewButtons: [...document.querySelectorAll(".view-button")]
 };
 
@@ -143,18 +142,30 @@ function renderGrid({ locations, courts, slots }) {
     return;
   }
 
-  for (const location of locations) {
+  const card = document.createElement("section");
+  card.className = "continuous-card";
+  card.append(buildProviderRules(locations));
+  const scroller = document.createElement("div");
+  scroller.className = "grid-scroller";
+  const grid = document.createElement("div");
+  grid.className = "court-grid continuous-grid";
+  grid.style.gridTemplateColumns =
+    `var(--location) var(--court) repeat(${TIMES.length}, var(--slot))`;
+
+  const locationHeader = positionedCell("Location", "grid-cell time-label location-corner", 1, 1);
+  const courtHeader = positionedCell("Court", "grid-cell time-label court-corner", 2, 1);
+  grid.append(locationHeader, courtHeader);
+  TIMES.forEach((time, index) => {
+    grid.append(positionedCell(time.replace(":00", ""), "grid-cell time-label", index + 3, 1));
+  });
+
+  const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
+  let gridRow = 2;
+
+  locations.forEach((location, locationIndex) => {
     const locationCourts = courts.filter((court) => court.location === location.code);
     const locationSlots = slots.filter((slot) => slot.location === location.code);
-    const fragment = elements.template.content.cloneNode(true);
-    fragment.querySelector(".location-code").textContent = location.code;
-    fragment.querySelector("h2").textContent = location.name;
-    fragment.querySelector(".booking-rule").textContent =
-      `${location.provider} · ${location.advanceRule}`;
-    fragment.querySelector(".premium-rule").textContent = location.premiumRule
-      ? `Premium: ${location.premiumRule}`
-      : "";
-    fragment.querySelector(".pricing-rule").textContent = location.pricingRule || "";
+    const dividerClass = locationIndex > 0 ? " group-divider" : "";
     const statusText = location.availabilityStatus === "unavailable"
       ? "Live feed unavailable"
       : location.availabilityStatus === "outside-window"
@@ -162,15 +173,112 @@ function renderGrid({ locations, courts, slots }) {
       : location.availabilityStatus === "cached"
         ? `${locationSlots.length} open hours · cached`
         : `${locationSlots.length} open ${locationSlots.length === 1 ? "hour" : "hours"}`;
-    fragment.querySelector(".location-heading p").textContent = statusText;
-    if (location.statusNote) {
-      fragment.querySelector(".location-heading p").title = location.statusNote;
-    }
-    const bookingLink = fragment.querySelector(".venue-booking-link");
-    bookingLink.href = bookingUrlForDate(location, state.data.date);
-    buildGrid(fragment.querySelector(".court-grid"), locationCourts, locationSlots);
-    elements.availability.append(fragment);
+
+    const locationCell = positionedCell(
+      "",
+      `grid-cell location-info${dividerClass}`,
+      1,
+      gridRow
+    );
+    locationCell.style.gridRowEnd = `span ${locationCourts.length}`;
+    locationCell.dataset.locationCode = location.code;
+    locationCell.innerHTML = `
+      ${providerMark(location.provider)}
+      <div class="location-copy">
+        <h2>${escapeHtml(location.name)}</h2>
+        ${location.pricingRule
+          ? `<span class="pricing-rule">${escapeHtml(location.pricingRule)}</span>`
+          : ""}
+        <span class="location-status">${escapeHtml(statusText)}</span>
+        <a class="venue-booking-link" href="${escapeHtml(bookingUrlForDate(location, state.data.date))}"
+          target="_blank" rel="noreferrer">Booking site ↗</a>
+      </div>
+    `;
+    if (location.statusNote) locationCell.title = location.statusNote;
+    grid.append(locationCell);
+
+    locationCourts.forEach((court, courtIndex) => {
+      const row = gridRow + courtIndex;
+      const rowDivider = locationIndex > 0 && courtIndex === 0 ? " group-divider" : "";
+      const courtCell = positionedCell(
+        "",
+        `grid-cell court-name${rowDivider}`,
+        2,
+        row
+      );
+      courtCell.innerHTML = `${escapeHtml(court.name)}
+        <span class="surface">${escapeHtml(court.surface)}</span>`;
+      grid.append(courtCell);
+
+      TIMES.forEach((time, timeIndex) => {
+        const wrapper = positionedCell(
+          "",
+          `grid-cell slot-cell${rowDivider}`,
+          timeIndex + 3,
+          row
+        );
+        const slot = slotLookup.get(`${court.id}:${time}`);
+        if (slot) wrapper.append(buildSlotLink(slot, court, time));
+        grid.append(wrapper);
+      });
+    });
+
+    gridRow += locationCourts.length;
+  });
+
+  scroller.append(grid);
+  card.append(scroller);
+  elements.availability.append(card);
+}
+
+function buildProviderRules(locations) {
+  const panel = document.createElement("aside");
+  panel.className = "provider-rules";
+  panel.setAttribute("aria-label", "Booking rules by provider");
+  panel.innerHTML = '<span class="provider-rules-title">Booking windows</span>';
+
+  const providers = new Map();
+  for (const location of locations) {
+    if (!providers.has(location.provider)) providers.set(location.provider, location);
   }
+
+  for (const location of providers.values()) {
+    const rule = document.createElement("div");
+    rule.className = "provider-rule";
+    rule.innerHTML = `
+      ${providerMark(location.provider)}
+      <div>
+        <strong>${escapeHtml(location.provider)}</strong>
+        <span>${escapeHtml(location.advanceRule)}</span>
+        ${location.premiumRule
+          ? `<span class="premium-rule">Premium: ${escapeHtml(location.premiumRule)}</span>`
+          : ""}
+      </div>
+    `;
+    panel.append(rule);
+  }
+  return panel;
+}
+
+function providerMark(provider) {
+  const marks = {
+    "All Star": {
+      label: "All Star",
+      iconUrl: "https://allstartennis.co.uk/wp-content/uploads/2021/02/cropped-Favicon-192x192.png"
+    },
+    LTA: {
+      label: "LTA",
+      iconUrl: "https://www.lta.org.uk/apple-touch-icon.png"
+    },
+    ClubSpark: {
+      label: "ClubSpark",
+      iconUrl: "https://cdn.prod.website-files.com/5913419a4c015d52d21dde03/63fd345e95e28f4b4832dde4_CS-23-icon.png"
+    }
+  };
+  const { label, iconUrl } = marks[provider] || marks.LTA;
+  return `<span class="provider-mark" title="${escapeHtml(label)}">
+    <img src="${iconUrl}" alt="${escapeHtml(label)} symbol" loading="lazy" referrerpolicy="no-referrer">
+  </span>`;
 }
 
 function bookingUrlForDate(location, date) {
@@ -179,42 +287,23 @@ function bookingUrlForDate(location, date) {
   return location.bookingUrl;
 }
 
-function buildGrid(grid, courts, slots) {
-  grid.style.gridTemplateColumns = `var(--court) repeat(${TIMES.length}, var(--slot))`;
-  grid.append(cell("Court", "grid-cell time-label corner"));
-  TIMES.forEach((time) => grid.append(cell(time.replace(":00", ""), "grid-cell time-label")));
-
-  const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
-  for (const court of courts) {
-    const courtCell = cell("", "grid-cell court-name");
-    courtCell.innerHTML = `${escapeHtml(court.name)}
-      <span class="surface">${escapeHtml(court.surface)}</span>`;
-    grid.append(courtCell);
-
-    for (const time of TIMES) {
-      const wrapper = cell("", "grid-cell slot-cell");
-      const slot = slotLookup.get(`${court.id}:${time}`);
-      if (slot) {
-        const link = document.createElement("a");
-        link.className = "slot-link";
-        link.href = slot.bookingUrl;
-        link.target = "_blank";
-        link.rel = "noreferrer";
-        const price = Number.isFinite(slot.price) ? ` · £${formatPrice(slot.price)}` : "";
-        const memberPrice = Number.isFinite(slot.memberPrice)
-          ? ` · Member Plus £${formatPrice(slot.memberPrice)}`
-          : "";
-        const period = slot.pricePeriod ? ` · ${slot.pricePeriod}` : "";
-        const access = slot.premiumOnly ? " · Member Plus only" : "";
-        const note = slot.pricingNote ? ` · ${slot.pricingNote}` : "";
-        link.classList.toggle("premium-slot", Boolean(slot.premiumOnly));
-        link.textContent = `Book ${court.name} at ${time}${price}${memberPrice}${period}${access}${note}`;
-        link.title = `Book ${time}${price}${memberPrice}${period}${access}${note}`;
-        wrapper.append(link);
-      }
-      grid.append(wrapper);
-    }
-  }
+function buildSlotLink(slot, court, time) {
+  const link = document.createElement("a");
+  link.className = "slot-link";
+  link.href = slot.bookingUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  const price = Number.isFinite(slot.price) ? ` · £${formatPrice(slot.price)}` : "";
+  const memberPrice = Number.isFinite(slot.memberPrice)
+    ? ` · Member Plus £${formatPrice(slot.memberPrice)}`
+    : "";
+  const period = slot.pricePeriod ? ` · ${slot.pricePeriod}` : "";
+  const access = slot.premiumOnly ? " · Member Plus only" : "";
+  const note = slot.pricingNote ? ` · ${slot.pricingNote}` : "";
+  link.classList.toggle("premium-slot", Boolean(slot.premiumOnly));
+  link.textContent = `Book ${court.name} at ${time}${price}${memberPrice}${period}${access}${note}`;
+  link.title = `Book ${time}${price}${memberPrice}${period}${access}${note}`;
+  return link;
 }
 
 function renderMap({ locations, courts, slots }) {
@@ -292,7 +381,8 @@ function focusLocation(code) {
   elements.location.value = code;
   setView("grid");
   render();
-  document.querySelector(".location-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector(`[data-location-code="${CSS.escape(code)}"]`)
+    ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
 }
 
 function setView(view) {
@@ -314,6 +404,13 @@ function cell(text, className) {
   const element = document.createElement("div");
   element.className = className;
   element.textContent = text;
+  return element;
+}
+
+function positionedCell(text, className, column, row) {
+  const element = cell(text, className);
+  element.style.gridColumn = column;
+  element.style.gridRow = row;
   return element;
 }
 
