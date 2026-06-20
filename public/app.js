@@ -6,14 +6,17 @@ const state = {
   data: null,
   view: "grid",
   map: null,
-  markerLayer: null
+  markerLayer: null,
+  selectedLocationCodes: new Set()
 };
 
 const elements = {
   date: document.querySelector("#date"),
   previousDay: document.querySelector("#previous-day"),
   nextDay: document.querySelector("#next-day"),
-  location: document.querySelector("#location-filter"),
+  locationFilter: document.querySelector(".location-multiselect"),
+  locationFilterLabel: document.querySelector("#location-filter-label"),
+  locationFilterOptions: document.querySelector("#location-filter-options"),
   surface: document.querySelector("#surface-filter"),
   refresh: document.querySelector("#refresh"),
   availability: document.querySelector("#availability"),
@@ -89,37 +92,63 @@ async function loadAvailability() {
 }
 
 function populateLocations() {
-  const current = elements.location.value;
-  elements.location.replaceChildren(new Option("All locations", "all"));
+  const validCodes = new Set(state.data.locations.map((location) => location.code));
+  state.selectedLocationCodes = new Set(
+    [...state.selectedLocationCodes].filter((code) => validCodes.has(code))
+  );
+  elements.locationFilterOptions.replaceChildren();
 
-  const groups = new Map();
+  const allLabel = document.createElement("label");
+  allLabel.className = "multi-select-all";
+  allLabel.innerHTML = '<input type="checkbox" value="all"> <span>All locations</span>';
+  elements.locationFilterOptions.append(allLabel);
+
+  const providers = new Map();
   for (const location of state.data.locations) {
-    if (!groups.has(location.provider)) {
-      const group = document.createElement("optgroup");
-      group.label = location.provider;
-      groups.set(location.provider, group);
-      elements.location.append(group);
-    }
-    groups.get(location.provider).append(new Option(location.name, location.code));
+    if (!providers.has(location.provider)) providers.set(location.provider, []);
+    providers.get(location.provider).push(location);
   }
-  elements.location.value = state.data.locations.some((location) => location.code === current)
-    ? current
-    : "all";
+  for (const [provider, locations] of providers) {
+    const group = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    legend.textContent = provider;
+    group.append(legend);
+    for (const location of locations) {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" value="${escapeHtml(location.code)}">
+        <span>${escapeHtml(location.name)}</span>`;
+      group.append(label);
+    }
+    elements.locationFilterOptions.append(group);
+  }
+  updateLocationFilter();
+}
+
+function updateLocationFilter() {
+  const count = state.selectedLocationCodes.size;
+  elements.locationFilterLabel.textContent = count
+    ? `${count} ${count === 1 ? "location" : "locations"}`
+    : "All locations";
+  const all = elements.locationFilterOptions.querySelector('input[value="all"]');
+  if (all) all.checked = count === 0;
+  elements.locationFilterOptions.querySelectorAll('input:not([value="all"])')
+    .forEach((input) => {
+      input.checked = state.selectedLocationCodes.has(input.value);
+    });
 }
 
 function visibleData() {
   if (!state.data) return { locations: [], courts: [], slots: [] };
-  const locationFilter = elements.location.value;
   const surfaceFilter = elements.surface.value;
   const courts = state.data.courts.filter((court) =>
-    (locationFilter === "all" || court.location === locationFilter) &&
+    (!state.selectedLocationCodes.size || state.selectedLocationCodes.has(court.location)) &&
     (surfaceFilter === "all" || court.surface === surfaceFilter)
   );
   const courtIds = new Set(courts.map((court) => court.id));
 
   return {
     locations: state.data.locations.filter((location) =>
-      (locationFilter === "all" || location.code === locationFilter) &&
+      (!state.selectedLocationCodes.size || state.selectedLocationCodes.has(location.code)) &&
       courts.some((court) => court.location === location.code)
     ),
     courts,
@@ -152,6 +181,14 @@ function renderGrid({ locations, courts, slots }) {
   grid.style.gridTemplateColumns =
     `var(--location) var(--court) repeat(${TIMES.length}, var(--slot))`;
 
+  const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
+  const courtTotals = new Map();
+  const timeTotals = new Map(TIMES.map((time) => [time, 0]));
+  for (const slot of slots) {
+    courtTotals.set(slot.courtId, (courtTotals.get(slot.courtId) || 0) + 1);
+    timeTotals.set(slot.time, (timeTotals.get(slot.time) || 0) + 1);
+  }
+
   const locationHeader = positionedCell("Location", "grid-cell time-label location-corner", 1, 1);
   const courtHeader = positionedCell("Court", "grid-cell time-label court-corner", 2, 1);
   grid.append(locationHeader, courtHeader);
@@ -159,10 +196,10 @@ function renderGrid({ locations, courts, slots }) {
     const header = positionedCell(time.replace(":00", ""), "grid-cell time-label", index + 3, 1);
     header.dataset.hoverInfo = "true";
     header.dataset.time = time;
+    header.dataset.columnTotal = timeTotals.get(time) || 0;
     grid.append(header);
   });
 
-  const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
   let gridRow = 2;
 
   locations.forEach((location, locationIndex) => {
@@ -211,7 +248,11 @@ function renderGrid({ locations, courts, slots }) {
       );
       courtCell.innerHTML = `${escapeHtml(court.name)}
         <span class="surface">${escapeHtml(court.surface)}</span>`;
-      setHoverInfo(courtCell, { location, court });
+      setHoverInfo(courtCell, {
+        location,
+        court,
+        rowTotal: courtTotals.get(court.id) || 0
+      });
       grid.append(courtCell);
 
       TIMES.forEach((time, timeIndex) => {
@@ -222,7 +263,14 @@ function renderGrid({ locations, courts, slots }) {
           row
         );
         const slot = slotLookup.get(`${court.id}:${time}`);
-        setHoverInfo(wrapper, { location, court, time, slot });
+        setHoverInfo(wrapper, {
+          location,
+          court,
+          time,
+          slot,
+          rowTotal: courtTotals.get(court.id) || 0,
+          columnTotal: timeTotals.get(time) || 0
+        });
         if (slot) wrapper.append(buildSlotLink(slot, court, time));
         grid.append(wrapper);
       });
@@ -312,15 +360,20 @@ function buildSlotLink(slot, court, time) {
   return link;
 }
 
-function setHoverInfo(cell, { location, court, time = "", slot = null }) {
+function setHoverInfo(
+  cell,
+  { location, court, time = "", slot = null, rowTotal = 0, columnTotal = 0 }
+) {
   cell.dataset.hoverInfo = "true";
   cell.dataset.locationName = location.name;
   cell.dataset.provider = location.provider;
   cell.dataset.courtName = court.name;
   cell.dataset.surface = court.surface;
+  cell.dataset.rowTotal = rowTotal;
   if (!time) return;
 
   cell.dataset.time = time;
+  cell.dataset.columnTotal = columnTotal;
   if (slot) {
     cell.dataset.availability = slot.premiumOnly ? "Available to Member Plus" : "Available";
     const details = [];
@@ -404,6 +457,21 @@ function setupGridHover(grid) {
       const details = document.createElement("span");
       details.textContent = cell.dataset.details;
       tooltip.append(details);
+    }
+    const totals = [];
+    if (cell.dataset.rowTotal !== undefined) {
+      const count = Number(cell.dataset.rowTotal);
+      totals.push(`${cell.dataset.courtName}: ${count} open ${count === 1 ? "hour" : "hours"}`);
+    }
+    if (cell.dataset.columnTotal !== undefined) {
+      const count = Number(cell.dataset.columnTotal);
+      totals.push(`${cell.dataset.time}: ${count} open court-${count === 1 ? "hour" : "hours"}`);
+    }
+    if (totals.length) {
+      const total = document.createElement("span");
+      total.className = "hover-totals";
+      total.textContent = totals.join(" · ");
+      tooltip.append(total);
     }
     tooltip.hidden = false;
 
@@ -506,7 +574,8 @@ function renderMap({ locations, courts, slots }) {
 }
 
 function focusLocation(code) {
-  elements.location.value = code;
+  state.selectedLocationCodes = new Set([code]);
+  updateLocationFilter();
   setView("grid");
   render();
   document.querySelector(`[data-location-code="${CSS.escape(code)}"]`)
@@ -585,7 +654,19 @@ elements.nextDay.addEventListener("click", () => {
 });
 elements.date.addEventListener("change", loadAvailability);
 elements.refresh.addEventListener("click", loadAvailability);
-elements.location.addEventListener("change", render);
+elements.locationFilterOptions.addEventListener("change", (event) => {
+  const input = event.target.closest('input[type="checkbox"]');
+  if (!input) return;
+  if (input.value === "all") {
+    state.selectedLocationCodes.clear();
+  } else if (input.checked) {
+    state.selectedLocationCodes.add(input.value);
+  } else {
+    state.selectedLocationCodes.delete(input.value);
+  }
+  updateLocationFilter();
+  render();
+});
 elements.surface.addEventListener("change", render);
 elements.viewButtons.forEach((button) =>
   button.addEventListener("click", () => setView(button.dataset.view))

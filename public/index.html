@@ -34,12 +34,13 @@
           <button id="next-day" class="icon-button" type="button" aria-label="Next day">→</button>
         </div>
 
-        <label class="select-control">
-          <span>Location</span>
-          <select id="location-filter">
-            <option value="all">All locations</option>
-          </select>
-        </label>
+        <details class="location-multiselect multi-select">
+          <summary>
+            <span>Location</span>
+            <strong id="location-filter-label">All locations</strong>
+          </summary>
+          <div id="location-filter-options" class="multi-select-options"></div>
+        </details>
 
         <label class="select-control">
           <span>Surface</span>
