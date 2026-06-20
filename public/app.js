@@ -156,7 +156,10 @@ function renderGrid({ locations, courts, slots }) {
   const courtHeader = positionedCell("Court", "grid-cell time-label court-corner", 2, 1);
   grid.append(locationHeader, courtHeader);
   TIMES.forEach((time, index) => {
-    grid.append(positionedCell(time.replace(":00", ""), "grid-cell time-label", index + 3, 1));
+    const header = positionedCell(time.replace(":00", ""), "grid-cell time-label", index + 3, 1);
+    header.dataset.hoverInfo = "true";
+    header.dataset.time = time;
+    grid.append(header);
   });
 
   const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
@@ -208,6 +211,7 @@ function renderGrid({ locations, courts, slots }) {
       );
       courtCell.innerHTML = `${escapeHtml(court.name)}
         <span class="surface">${escapeHtml(court.surface)}</span>`;
+      setHoverInfo(courtCell, { location, court });
       grid.append(courtCell);
 
       TIMES.forEach((time, timeIndex) => {
@@ -218,6 +222,7 @@ function renderGrid({ locations, courts, slots }) {
           row
         );
         const slot = slotLookup.get(`${court.id}:${time}`);
+        setHoverInfo(wrapper, { location, court, time, slot });
         if (slot) wrapper.append(buildSlotLink(slot, court, time));
         grid.append(wrapper);
       });
@@ -229,6 +234,7 @@ function renderGrid({ locations, courts, slots }) {
   scroller.append(grid);
   card.append(scroller);
   elements.availability.append(card);
+  setupGridHover(grid);
 }
 
 function buildProviderRules(locations) {
@@ -302,8 +308,130 @@ function buildSlotLink(slot, court, time) {
   const note = slot.pricingNote ? ` · ${slot.pricingNote}` : "";
   link.classList.toggle("premium-slot", Boolean(slot.premiumOnly));
   link.textContent = `Book ${court.name} at ${time}${price}${memberPrice}${period}${access}${note}`;
-  link.title = `Book ${time}${price}${memberPrice}${period}${access}${note}`;
+  link.setAttribute("aria-label", `Book ${time}${price}${memberPrice}${period}${access}${note}`);
   return link;
+}
+
+function setHoverInfo(cell, { location, court, time = "", slot = null }) {
+  cell.dataset.hoverInfo = "true";
+  cell.dataset.locationName = location.name;
+  cell.dataset.provider = location.provider;
+  cell.dataset.courtName = court.name;
+  cell.dataset.surface = court.surface;
+  if (!time) return;
+
+  cell.dataset.time = time;
+  if (slot) {
+    cell.dataset.availability = slot.premiumOnly ? "Available to Member Plus" : "Available";
+    const details = [];
+    if (Number.isFinite(slot.price)) details.push(`Public £${formatPrice(slot.price)}`);
+    if (Number.isFinite(slot.memberPrice)) {
+      details.push(`Member Plus £${formatPrice(slot.memberPrice)}`);
+    }
+    if (slot.pricePeriod) details.push(slot.pricePeriod);
+    if (slot.pricingNote) details.push(slot.pricingNote);
+    cell.dataset.details = details.join(" · ");
+  } else if (location.availabilityStatus === "unavailable") {
+    cell.dataset.availability = "Live feed unavailable";
+  } else if (location.availabilityStatus === "outside-window") {
+    cell.dataset.availability = "Outside booking window";
+  } else {
+    cell.dataset.availability = "Not available";
+  }
+}
+
+function setupGridHover(grid) {
+  let tooltip = document.querySelector("#grid-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.id = "grid-tooltip";
+    tooltip.className = "grid-tooltip";
+    tooltip.setAttribute("role", "status");
+    tooltip.hidden = true;
+    document.body.append(tooltip);
+  }
+
+  const clearHighlight = () => {
+    grid.querySelectorAll(".is-row-highlighted, .is-column-highlighted, .is-hovered")
+      .forEach((cell) =>
+        cell.classList.remove("is-row-highlighted", "is-column-highlighted", "is-hovered")
+      );
+    tooltip.hidden = true;
+  };
+
+  const positionTooltip = (x, y) => {
+    const gap = 14;
+    const bounds = tooltip.getBoundingClientRect();
+    tooltip.style.left = `${Math.max(10, Math.min(x + gap, window.innerWidth - bounds.width - 10))}px`;
+    const below = y + gap;
+    tooltip.style.top = `${below + bounds.height > window.innerHeight
+      ? Math.max(10, y - bounds.height - gap)
+      : below}px`;
+  };
+
+  const showTooltip = (cell, event) => {
+    const row = cell.dataset.gridRow;
+    const column = cell.dataset.gridColumn;
+    if (row && row !== "1") {
+      grid.querySelectorAll(`[data-grid-row="${row}"]:not(.location-info)`)
+        .forEach((item) => item.classList.add("is-row-highlighted"));
+    }
+    if (column && column !== "1" && column !== "2") {
+      grid.querySelectorAll(`[data-grid-column="${column}"]`)
+        .forEach((item) => item.classList.add("is-column-highlighted"));
+    }
+    cell.classList.add("is-hovered");
+
+    const heading = cell.dataset.courtName && cell.dataset.time
+      ? `${cell.dataset.courtName} · ${cell.dataset.time}`
+      : cell.dataset.courtName || `${cell.dataset.time} across all courts`;
+    const context = cell.dataset.locationName
+      ? `${cell.dataset.locationName} · ${cell.dataset.surface} · ${cell.dataset.provider}`
+      : "Availability by hour";
+    tooltip.replaceChildren();
+    const strong = document.createElement("strong");
+    strong.textContent = heading;
+    const meta = document.createElement("span");
+    meta.textContent = context;
+    tooltip.append(strong, meta);
+    if (cell.dataset.availability) {
+      const availability = document.createElement("span");
+      availability.className = cell.querySelector(".slot-link") ? "available" : "unavailable";
+      availability.textContent = cell.dataset.availability;
+      tooltip.append(availability);
+    }
+    if (cell.dataset.details) {
+      const details = document.createElement("span");
+      details.textContent = cell.dataset.details;
+      tooltip.append(details);
+    }
+    tooltip.hidden = false;
+
+    if (event?.clientX) {
+      positionTooltip(event.clientX, event.clientY);
+    } else {
+      const bounds = cell.getBoundingClientRect();
+      positionTooltip(bounds.right, bounds.top + bounds.height / 2);
+    }
+  };
+
+  grid.addEventListener("pointerover", (event) => {
+    const cell = event.target.closest(".grid-cell[data-hover-info]");
+    if (!cell || !grid.contains(cell)) return;
+    clearHighlight();
+    showTooltip(cell, event);
+  });
+  grid.addEventListener("pointermove", (event) => {
+    if (!tooltip.hidden) positionTooltip(event.clientX, event.clientY);
+  });
+  grid.addEventListener("pointerleave", clearHighlight);
+  grid.addEventListener("focusin", (event) => {
+    const cell = event.target.closest(".grid-cell[data-hover-info]");
+    if (!cell) return;
+    clearHighlight();
+    showTooltip(cell);
+  });
+  grid.addEventListener("focusout", clearHighlight);
 }
 
 function renderMap({ locations, courts, slots }) {
@@ -411,6 +539,8 @@ function positionedCell(text, className, column, row) {
   const element = cell(text, className);
   element.style.gridColumn = column;
   element.style.gridRow = row;
+  element.dataset.gridColumn = column;
+  element.dataset.gridRow = row;
   return element;
 }
 
