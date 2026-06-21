@@ -973,7 +973,10 @@ main {
   .masthead { padding: 10px 14px; }
   .live-note { font-size: 10px; }
   main { padding: 9px 7px 48px; }
-  .control-bar { top: 4px; grid-template-columns: 1fr; }
+  .control-bar {
+    position: static;
+    grid-template-columns: 1fr;
+  }
   .multi-select-options { width: 100%; }
   .date-control > label { flex: 1; }
   .view-button { min-height: 39px; }
@@ -981,10 +984,33 @@ main {
   .summary { margin: 17px 8px 12px; }
   .summary div { display: block; }
   .summary strong, .summary span { display: block; }
-  :root { --location: 210px; --court: 112px; --slot: 47px; }
+  :root { --court: 72px; --slot: 40px; }
+  .grid-scroller {
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+  .compact-grid .court-corner,
+  .compact-grid .court-name {
+    left: 1px;
+    padding-left: 8px;
+  }
+  .compact-grid .court-name { font-size: 9px; }
+  .compact-grid .grid-cell { min-height: 44px; }
+  .compact-grid .location-info {
+    position: relative;
+    left: auto;
+    min-height: 104px;
+  }
+  .compact-grid .location-info .provider-mark,
+  .compact-grid .location-info .location-copy {
+    position: sticky;
+  }
+  .compact-grid .location-info .provider-mark { left: 11px; }
+  .compact-grid .location-info .location-copy { left: 63px; }
   .location-info {
-    grid-template-columns: 1fr;
-    row-gap: 8px;
+    grid-template-columns: 42px minmax(0, 240px);
+    align-content: center;
+    column-gap: 10px;
     padding: 11px;
   }
   .provider-rules-title { display: none; }

@@ -1,6 +1,7 @@
 const TIMES = Array.from({ length: 16 }, (_, index) =>
   `${String(index + 6).padStart(2, "0")}:00`
 );
+const COMPACT_GRID = window.matchMedia("(max-width: 580px)");
 
 const state = {
   data: null,
@@ -220,15 +221,17 @@ function renderGrid({ locations, courts, slots }) {
     return;
   }
 
+  const compact = COMPACT_GRID.matches;
   const card = document.createElement("section");
   card.className = "continuous-card";
   card.append(buildProviderRules(locations));
   const scroller = document.createElement("div");
   scroller.className = "grid-scroller";
   const grid = document.createElement("div");
-  grid.className = "court-grid continuous-grid";
-  grid.style.gridTemplateColumns =
-    `var(--location) var(--court) repeat(${TIMES.length}, var(--slot))`;
+  grid.className = `court-grid continuous-grid${compact ? " compact-grid" : ""}`;
+  grid.style.gridTemplateColumns = compact
+    ? `var(--court) repeat(${TIMES.length}, var(--slot))`
+    : `var(--location) var(--court) repeat(${TIMES.length}, var(--slot))`;
 
   const slotLookup = new Map(slots.map((slot) => [`${slot.courtId}:${slot.time}`, slot]));
   const courtTotals = new Map();
@@ -238,11 +241,29 @@ function renderGrid({ locations, courts, slots }) {
     timeTotals.set(slot.time, (timeTotals.get(slot.time) || 0) + 1);
   }
 
-  const locationHeader = positionedCell("Location", "grid-cell time-label location-corner", 1, 1);
-  const courtHeader = positionedCell("Court", "grid-cell time-label court-corner", 2, 1);
-  grid.append(locationHeader, courtHeader);
+  if (!compact) {
+    const locationHeader = positionedCell(
+      "Location",
+      "grid-cell time-label location-corner",
+      1,
+      1
+    );
+    grid.append(locationHeader);
+  }
+  const courtHeader = positionedCell(
+    "Court",
+    "grid-cell time-label court-corner",
+    compact ? 1 : 2,
+    1
+  );
+  grid.append(courtHeader);
   TIMES.forEach((time, index) => {
-    const header = positionedCell(time.replace(":00", ""), "grid-cell time-label", index + 3, 1);
+    const header = positionedCell(
+      time.replace(":00", ""),
+      "grid-cell time-label",
+      index + (compact ? 2 : 3),
+      1
+    );
     header.dataset.hoverInfo = "true";
     header.dataset.time = time;
     header.dataset.columnTotal = timeTotals.get(time) || 0;
@@ -271,7 +292,12 @@ function renderGrid({ locations, courts, slots }) {
       1,
       gridRow
     );
-    locationCell.style.gridRowEnd = `span ${locationCourts.length}`;
+    if (compact) {
+      locationCell.style.gridColumn = "1 / -1";
+      gridRow += 1;
+    } else {
+      locationCell.style.gridRowEnd = `span ${locationCourts.length}`;
+    }
     locationCell.dataset.locationCode = location.code;
     locationCell.innerHTML = `
       ${providerMark(location.provider)}
@@ -295,11 +321,13 @@ function renderGrid({ locations, courts, slots }) {
 
     locationCourts.forEach((court, courtIndex) => {
       const row = gridRow + courtIndex;
-      const rowDivider = locationIndex > 0 && courtIndex === 0 ? " group-divider" : "";
+      const rowDivider = !compact && locationIndex > 0 && courtIndex === 0
+        ? " group-divider"
+        : "";
       const courtCell = positionedCell(
         "",
         `grid-cell court-name${rowDivider}`,
-        2,
+        compact ? 1 : 2,
         row
       );
       courtCell.innerHTML = `${escapeHtml(court.name)}
@@ -315,7 +343,7 @@ function renderGrid({ locations, courts, slots }) {
         const wrapper = positionedCell(
           "",
           `grid-cell slot-cell${rowDivider}`,
-          timeIndex + 3,
+          timeIndex + (compact ? 2 : 3),
           row
         );
         const slot = slotLookup.get(`${court.id}:${time}`);
@@ -727,6 +755,7 @@ elements.locationFilterOptions.addEventListener("change", (event) => {
   render();
 });
 elements.surface.addEventListener("change", render);
+COMPACT_GRID.addEventListener("change", render);
 elements.viewButtons.forEach((button) =>
   button.addEventListener("click", () => setView(button.dataset.view))
 );
