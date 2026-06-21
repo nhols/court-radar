@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {
+let {
   decodeHtml,
   parseJsonp,
   parseAvailability,
@@ -9,7 +9,20 @@ const {
   daysFromLondonToday,
   toTime,
   isValidDate
-} = require("../server");
+} = {};
+
+test.before(async () => {
+  ({
+    decodeHtml,
+    parseJsonp,
+    parseAvailability,
+    parseBatterseaAvailability,
+    allStarPrice,
+    daysFromLondonToday,
+    toTime,
+    isValidDate
+  } = await import("../lib/availability.mjs"));
+});
 
 test("parseJsonp unwraps Mindbody's response", () => {
   assert.deepEqual(parseJsonp('({"contents":"hello"});'), { contents: "hello" });
