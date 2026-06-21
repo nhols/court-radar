@@ -411,7 +411,6 @@ function buildSlotLink(slot, court, time) {
   const access = slot.premiumOnly ? " · Member Plus only" : "";
   const note = slot.pricingNote ? ` · ${slot.pricingNote}` : "";
   link.classList.toggle("premium-slot", Boolean(slot.premiumOnly));
-  link.textContent = `Book ${court.name} at ${time}${price}${memberPrice}${period}${access}${note}`;
   link.setAttribute("aria-label", `Book ${time}${price}${memberPrice}${period}${access}${note}`);
   return link;
 }
