@@ -24,7 +24,7 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button, select, input[type="date"] { color: inherit; }
 
 .masthead {
@@ -330,6 +330,147 @@ main {
   font-size: 12px;
 }
 
+.notice[data-tone="success"] {
+  border-color: #9dc8aa;
+  background: #eaf8ed;
+}
+
+.import-dialog {
+  width: min(620px, calc(100vw - 28px));
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 28px 80px rgba(21, 55, 44, .32);
+  color: var(--ink);
+}
+
+.import-dialog::backdrop {
+  background: rgba(21, 55, 44, .55);
+  backdrop-filter: blur(4px);
+}
+
+.import-dialog-card { padding: 24px; }
+
+.import-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.eyebrow {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.import-dialog h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.dialog-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 23px;
+  line-height: 1;
+}
+
+.import-steps {
+  margin: 22px 0;
+  padding-left: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.import-steps li + li { margin-top: 7px; }
+
+.open-json-button {
+  display: inline-block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.open-json-button:hover { color: var(--acid); }
+
+.json-input > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.json-input textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.json-input textarea:focus {
+  border-color: var(--ink);
+  outline: 2px solid rgba(217, 255, 95, .8);
+}
+
+.import-status {
+  min-height: 18px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.import-status[data-tone="error"] {
+  color: #9b4a2f;
+  font-weight: 700;
+}
+
+.import-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cancel-button, .import-button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.cancel-button {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+
+.import-button {
+  border: 0;
+  background: var(--acid);
+  color: var(--ink);
+}
+
 .availability { display: block; }
 
 .continuous-card {
@@ -399,6 +540,22 @@ main {
   color: #9b4a2f;
   cursor: help;
   font-weight: 700;
+}
+
+.inline-import-button {
+  margin-left: 5px;
+  padding: 3px 6px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.inline-import-button:hover {
+  background: var(--acid);
 }
 
 .venue-booking-link {
@@ -820,6 +977,7 @@ main {
   .multi-select-options { width: 100%; }
   .date-control > label { flex: 1; }
   .view-button { min-height: 39px; }
+  .import-dialog-card { padding: 18px; }
   .summary { margin: 17px 8px 12px; }
   .summary div { display: block; }
   .summary strong, .summary span { display: block; }

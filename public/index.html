@@ -82,11 +82,47 @@
       </section>
     </main>
 
+    <dialog id="battersea-import-dialog" class="import-dialog">
+      <form method="dialog" class="import-dialog-card">
+        <div class="import-dialog-heading">
+          <div>
+            <span class="eyebrow">Manual live import</span>
+            <h2>Battersea Park</h2>
+          </div>
+          <button class="dialog-close" value="cancel" aria-label="Close">×</button>
+        </div>
+
+        <ol class="import-steps">
+          <li>
+            <a id="open-battersea-json" class="open-json-button" href="#" target="_blank"
+              rel="noreferrer">Open ClubSpark JSON ↗</a>
+          </li>
+          <li>Select all and copy the raw JSON shown in the new tab.</li>
+          <li>Paste it below. Court Radar processes it only in this browser.</li>
+        </ol>
+
+        <label class="json-input">
+          <span>ClubSpark response for <strong id="battersea-import-date"></strong></span>
+          <textarea id="battersea-json" rows="9" spellcheck="false"
+            placeholder='Paste the response beginning with {"Resources":…}'></textarea>
+        </label>
+        <p id="battersea-import-status" class="import-status" role="status"></p>
+
+        <div class="import-dialog-actions">
+          <button class="cancel-button" value="cancel">Cancel</button>
+          <button id="import-battersea-json" class="import-button" type="button">
+            Import availability
+          </button>
+        </div>
+      </form>
+    </dialog>
+
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       crossorigin=""
       defer
     ></script>
+    <script src="/battersea-import.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

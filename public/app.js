@@ -19,6 +19,12 @@ const elements = {
   locationFilterOptions: document.querySelector("#location-filter-options"),
   surface: document.querySelector("#surface-filter"),
   refresh: document.querySelector("#refresh"),
+  batterseaDialog: document.querySelector("#battersea-import-dialog"),
+  batterseaJsonLink: document.querySelector("#open-battersea-json"),
+  batterseaImportDate: document.querySelector("#battersea-import-date"),
+  batterseaJson: document.querySelector("#battersea-json"),
+  batterseaImport: document.querySelector("#import-battersea-json"),
+  batterseaImportStatus: document.querySelector("#battersea-import-status"),
   availability: document.querySelector("#availability"),
   mapView: document.querySelector("#map-view"),
   map: document.querySelector("#map"),
@@ -50,6 +56,12 @@ function setLoading(loading) {
   }
 }
 
+function showNotice(message, tone = "warning") {
+  elements.notice.textContent = message;
+  elements.notice.dataset.tone = tone;
+  elements.notice.hidden = false;
+}
+
 async function loadAvailability() {
   setLoading(true);
   elements.notice.hidden = true;
@@ -71,10 +83,9 @@ async function loadAvailability() {
     })}`;
 
     if (data.errors.length) {
-      elements.notice.textContent = `Some locations did not answer: ${data.errors
+      showNotice(`Some locations did not answer: ${data.errors
         .map((error) => error.location)
-        .join(", ")}. The rest are live.`;
-      elements.notice.hidden = false;
+        .join(", ")}. The rest are live.`);
     }
   } catch (error) {
     state.data = null;
@@ -88,6 +99,44 @@ async function loadAvailability() {
   } finally {
     setLoading(false);
     if (state.data) render();
+  }
+}
+
+function openBatterseaImport() {
+  const date = elements.date.value;
+  elements.batterseaJsonLink.href = BatterseaImport.endpointForDate(date);
+  elements.batterseaImportDate.textContent = date;
+  elements.batterseaJson.value = "";
+  elements.batterseaImportStatus.textContent = "";
+  elements.batterseaImportStatus.dataset.tone = "";
+  elements.batterseaDialog.showModal();
+}
+
+function importBattersea() {
+  if (!state.data) {
+    elements.batterseaImportStatus.textContent =
+      "Load the main availability first, then import Battersea.";
+    elements.batterseaImportStatus.dataset.tone = "error";
+    return;
+  }
+
+  try {
+    const result = BatterseaImport.importText(
+      elements.batterseaJson.value,
+      elements.date.value
+    );
+    state.data = BatterseaImport.mergeIntoAvailability(state.data, result);
+    populateLocations();
+    render();
+    elements.batterseaDialog.close();
+    elements.freshness.textContent = "Live · Battersea imported just now";
+    showNotice(
+      `Battersea imported for ${elements.date.value}: ${result.slots.length} open court-hours.`,
+      "success"
+    );
+  } catch (error) {
+    elements.batterseaImportStatus.textContent = error.message;
+    elements.batterseaImportStatus.dataset.tone = "error";
   }
 }
 
@@ -212,6 +261,8 @@ function renderGrid({ locations, courts, slots }) {
         ? "Outside 14-day booking window"
       : location.availabilityStatus === "cached"
         ? `${locationSlots.length} open hours · cached`
+        : location.availabilityStatus === "imported"
+          ? `${locationSlots.length} open hours · manually imported`
         : `${locationSlots.length} open ${locationSlots.length === 1 ? "hour" : "hours"}`;
 
     const locationCell = positionedCell(
@@ -229,7 +280,12 @@ function renderGrid({ locations, courts, slots }) {
         ${location.pricingRule
           ? `<span class="pricing-rule">${escapeHtml(location.pricingRule)}</span>`
           : ""}
-        <span class="location-status">${escapeHtml(statusText)}</span>
+        <span class="location-status">
+          ${escapeHtml(statusText)}
+          ${location.code === "BPK" && location.availabilityStatus === "unavailable"
+            ? '<button class="inline-import-button" data-import-battersea type="button">Import Battersea</button>'
+            : ""}
+        </span>
         <a class="venue-booking-link" href="${escapeHtml(bookingUrlForDate(location, state.data.date))}"
           target="_blank" rel="noreferrer">Booking site ↗</a>
       </div>
@@ -654,6 +710,10 @@ elements.nextDay.addEventListener("click", () => {
 });
 elements.date.addEventListener("change", loadAvailability);
 elements.refresh.addEventListener("click", loadAvailability);
+elements.batterseaImport.addEventListener("click", importBattersea);
+elements.availability.addEventListener("click", (event) => {
+  if (event.target.closest("[data-import-battersea]")) openBatterseaImport();
+});
 elements.locationFilterOptions.addEventListener("change", (event) => {
   const input = event.target.closest('input[type="checkbox"]');
   if (!input) return;
