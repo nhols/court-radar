@@ -974,7 +974,7 @@ main {
   .live-note { font-size: 10px; }
   main { padding: 9px 7px 48px; }
   .control-bar {
-    position: static;
+    position: relative;
     grid-template-columns: 1fr;
   }
   .multi-select-options { width: 100%; }
