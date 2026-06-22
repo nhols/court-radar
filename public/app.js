@@ -8,7 +8,8 @@ const state = {
   view: "grid",
   map: null,
   markerLayer: null,
-  selectedLocationCodes: new Set()
+  selectedLocationCodes: new Set(),
+  selectedTimes: new Set()
 };
 
 const elements = {
@@ -19,6 +20,8 @@ const elements = {
   locationFilterLabel: document.querySelector("#location-filter-label"),
   locationFilterOptions: document.querySelector("#location-filter-options"),
   surface: document.querySelector("#surface-filter"),
+  timeFilterLabel: document.querySelector("#time-filter-label"),
+  timeFilterOptions: document.querySelector("#time-filter-options"),
   refresh: document.querySelector("#refresh"),
   batterseaDialog: document.querySelector("#battersea-import-dialog"),
   batterseaJsonLink: document.querySelector("#open-battersea-json"),
@@ -187,12 +190,48 @@ function updateLocationFilter() {
     });
 }
 
+function populateTimes() {
+  elements.timeFilterOptions.replaceChildren();
+
+  const anyLabel = document.createElement("label");
+  anyLabel.className = "multi-select-all";
+  anyLabel.innerHTML = '<input type="checkbox" value="all"> <span>Any hour</span>';
+  elements.timeFilterOptions.append(anyLabel);
+
+  for (const time of TIMES) {
+    const label = document.createElement("label");
+    label.innerHTML = `<input type="checkbox" value="${time}"> <span>${time}</span>`;
+    elements.timeFilterOptions.append(label);
+  }
+  updateTimeFilter();
+}
+
+function updateTimeFilter() {
+  const selectedTimes = [...state.selectedTimes].sort();
+  elements.timeFilterLabel.textContent = selectedTimes.length
+    ? selectedTimes.length <= 2
+      ? selectedTimes.join(", ")
+      : `${selectedTimes.length} hours`
+    : "Any hour";
+  const all = elements.timeFilterOptions.querySelector('input[value="all"]');
+  if (all) all.checked = selectedTimes.length === 0;
+  elements.timeFilterOptions.querySelectorAll('input:not([value="all"])')
+    .forEach((input) => {
+      input.checked = state.selectedTimes.has(input.value);
+    });
+}
+
 function visibleData() {
   if (!state.data) return { locations: [], courts: [], slots: [] };
   const surfaceFilter = elements.surface.value;
-  const courts = state.data.courts.filter((court) =>
+  const matchingSurfaceAndLocation = state.data.courts.filter((court) =>
     (!state.selectedLocationCodes.size || state.selectedLocationCodes.has(court.location)) &&
     (surfaceFilter === "all" || court.surface === surfaceFilter)
+  );
+  const courts = CourtFilters.courtsAvailableAtAllTimes(
+    matchingSurfaceAndLocation,
+    state.data.slots,
+    state.selectedTimes
   );
   const courtIds = new Set(courts.map((court) => court.id));
 
@@ -217,7 +256,10 @@ function render() {
 function renderGrid({ locations, courts, slots }) {
   elements.availability.replaceChildren();
   if (!locations.length) {
-    elements.availability.innerHTML = '<div class="empty-state">No courts match those filters.</div>';
+    const message = state.selectedTimes.size
+      ? "No courts are available at every selected hour."
+      : "No courts match those filters.";
+    elements.availability.innerHTML = `<div class="empty-state">${message}</div>`;
     return;
   }
 
@@ -267,6 +309,7 @@ function renderGrid({ locations, courts, slots }) {
     header.dataset.hoverInfo = "true";
     header.dataset.time = time;
     header.dataset.columnTotal = timeTotals.get(time) || 0;
+    header.classList.toggle("is-selected-time", state.selectedTimes.has(time));
     grid.append(header);
   });
 
@@ -346,6 +389,7 @@ function renderGrid({ locations, courts, slots }) {
           timeIndex + (compact ? 2 : 3),
           row
         );
+        wrapper.classList.toggle("is-selected-time", state.selectedTimes.has(time));
         const slot = slotLookup.get(`${court.id}:${time}`);
         setHoverInfo(wrapper, {
           location,
@@ -755,10 +799,24 @@ elements.locationFilterOptions.addEventListener("change", (event) => {
   render();
 });
 elements.surface.addEventListener("change", render);
+elements.timeFilterOptions.addEventListener("change", (event) => {
+  const input = event.target.closest('input[type="checkbox"]');
+  if (!input) return;
+  if (input.value === "all") {
+    state.selectedTimes.clear();
+  } else if (input.checked) {
+    state.selectedTimes.add(input.value);
+  } else {
+    state.selectedTimes.delete(input.value);
+  }
+  updateTimeFilter();
+  render();
+});
 COMPACT_GRID.addEventListener("change", render);
 elements.viewButtons.forEach((button) =>
   button.addEventListener("click", () => setView(button.dataset.view))
 );
 
+populateTimes();
 setView("grid");
 loadAvailability();

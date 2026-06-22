@@ -51,6 +51,14 @@
           </select>
         </label>
 
+        <details class="time-multiselect multi-select">
+          <summary>
+            <span>Hours</span>
+            <strong id="time-filter-label">Any hour</strong>
+          </summary>
+          <div id="time-filter-options" class="multi-select-options time-select-options"></div>
+        </details>
+
         <div class="view-toggle" aria-label="View">
           <button class="view-button active" data-view="grid" type="button">Grid</button>
           <button class="view-button" data-view="map" type="button">Map</button>
@@ -123,6 +131,7 @@
       defer
     ></script>
     <script src="/battersea-import.js" defer></script>
+    <script src="/availability-filter.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

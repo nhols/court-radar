@@ -92,7 +92,7 @@ main {
   z-index: 10;
   top: 8px;
   display: grid;
-  grid-template-columns: auto minmax(190px, 1fr) minmax(145px, .65fr) auto auto;
+  grid-template-columns: auto minmax(190px, 1fr) minmax(145px, .65fr) minmax(145px, .65fr) auto auto;
   gap: 9px;
   padding: 9px;
   border: 1px solid rgba(21, 55, 44, .22);
@@ -232,6 +232,16 @@ main {
 .multi-select-all {
   margin-bottom: 6px;
   background: rgba(217, 255, 95, .24);
+}
+
+.time-select-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: min(250px, calc(100vw - 32px));
+}
+
+.time-select-options .multi-select-all {
+  grid-column: 1 / -1;
 }
 
 .date-control input, .select-control select {
@@ -779,6 +789,16 @@ main {
 }
 
 .slot-cell { background: rgba(242, 240, 232, .34); }
+
+.grid-cell.is-selected-time {
+  background-color: rgba(204, 231, 255, .34);
+  box-shadow: inset 2px 0 0 rgba(31, 90, 67, .24), inset -2px 0 0 rgba(31, 90, 67, .24);
+}
+
+.time-label.is-selected-time {
+  color: var(--ink);
+  background: var(--blue);
+}
 
 .slot-link {
   width: 100%;
