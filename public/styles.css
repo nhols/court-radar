@@ -630,6 +630,23 @@ main {
 
 .grid-scroller { overflow-x: auto; }
 
+.frozen-time-header {
+  position: fixed;
+  z-index: 9;
+  display: none;
+  overflow: hidden;
+  border: 1px solid rgba(21, 55, 44, .24);
+  background: #f7f5ee;
+  box-shadow: 0 8px 18px rgba(21, 55, 44, .16);
+  pointer-events: none;
+}
+
+.frozen-time-header.is-visible { display: block; }
+
+.frozen-time-grid { min-width: 0; }
+
+.frozen-time-grid .time-label { top: auto; }
+
 .court-grid {
   display: grid;
   width: max-content;

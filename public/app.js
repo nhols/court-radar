@@ -12,6 +12,8 @@ const state = {
   selectedTimes: new Set()
 };
 
+let frozenTimeHeaderCleanup = null;
+
 const elements = {
   date: document.querySelector("#date"),
   previousDay: document.querySelector("#previous-day"),
@@ -254,6 +256,8 @@ function render() {
 }
 
 function renderGrid({ locations, courts, slots }) {
+  frozenTimeHeaderCleanup?.();
+  frozenTimeHeaderCleanup = null;
   elements.availability.replaceChildren();
   if (!locations.length) {
     const message = state.selectedTimes.size
@@ -411,6 +415,61 @@ function renderGrid({ locations, courts, slots }) {
   card.append(scroller);
   elements.availability.append(card);
   setupGridHover(grid);
+  frozenTimeHeaderCleanup = setupFrozenTimeHeader(card, scroller, grid);
+}
+
+function setupFrozenTimeHeader(card, scroller, grid) {
+  const headerCells = [...grid.querySelectorAll(".time-label")];
+  if (!headerCells.length) return null;
+
+  const frozen = document.createElement("div");
+  frozen.className = "frozen-time-header";
+  frozen.setAttribute("aria-hidden", "true");
+
+  const frozenGrid = document.createElement("div");
+  frozenGrid.className = grid.className.replace("court-grid", "court-grid frozen-time-grid");
+  frozenGrid.style.gridTemplateColumns = grid.style.gridTemplateColumns;
+  headerCells.forEach((cell) => frozenGrid.append(cell.cloneNode(true)));
+  frozen.append(frozenGrid);
+  card.append(frozen);
+
+  let frame = 0;
+  const update = () => {
+    frame = 0;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const originalHeaderRect = headerCells[0].getBoundingClientRect();
+    const controlsRect = document.querySelector(".control-bar")?.getBoundingClientRect();
+    const top = controlsRect?.bottom > 0 ? controlsRect.bottom + 8 : 0;
+    const left = Math.max(0, scrollerRect.left);
+    const right = Math.min(window.innerWidth, scrollerRect.right);
+    const visible = originalHeaderRect.top < top &&
+      cardRect.bottom > top + originalHeaderRect.height;
+
+    frozen.classList.toggle("is-visible", visible);
+    if (!visible) return;
+
+    frozen.style.top = `${top}px`;
+    frozen.style.left = `${left}px`;
+    frozen.style.width = `${Math.max(0, right - left)}px`;
+    frozen.scrollLeft = scroller.scrollLeft;
+  };
+  const scheduleUpdate = () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  };
+
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate);
+  scroller.addEventListener("scroll", scheduleUpdate, { passive: true });
+  update();
+
+  return () => {
+    if (frame) cancelAnimationFrame(frame);
+    window.removeEventListener("scroll", scheduleUpdate);
+    window.removeEventListener("resize", scheduleUpdate);
+    scroller.removeEventListener("scroll", scheduleUpdate);
+    frozen.remove();
+  };
 }
 
 function buildProviderRules(locations) {
