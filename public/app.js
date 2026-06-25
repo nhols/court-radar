@@ -73,10 +73,13 @@ async function loadAvailability() {
   elements.notice.hidden = true;
 
   try {
-    const params = new URLSearchParams({ date: elements.date.value });
+    const params = new URLSearchParams({ date: elements.date.value, skip: "allstar" });
     const response = await fetch(`/api/availability?${params}`);
-    const data = await response.json();
+    let data = await response.json();
     if (!response.ok) throw new Error(data.detail || data.error || "Availability request failed");
+    if (window.AllStarBrowser) {
+      data = await window.AllStarBrowser.fetchAvailability(data);
+    }
 
     state.data = data;
     populateLocations();

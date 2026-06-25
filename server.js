@@ -48,7 +48,9 @@ const server = http.createServer(async (request, response) => {
   if (url.pathname === "/api/availability") {
     try {
       const { getAvailability } = await availabilityModule;
-      const result = await getAvailability(url.searchParams.get("date"));
+      const result = await getAvailability(url.searchParams.get("date"), {
+        skipAllStar: url.searchParams.get("skip") === "allstar"
+      });
       return sendJson(response, result.status, result.data);
     } catch (error) {
       return sendJson(response, 500, { error: "Availability request failed.", detail: error.message });

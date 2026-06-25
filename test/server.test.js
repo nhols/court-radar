@@ -135,3 +135,32 @@ test("daysFromLondonToday measures the selected booking window", () => {
   today.setUTCDate(today.getUTCDate() + 3);
   assert.equal(daysFromLondonToday(today.toISOString().slice(0, 10)), 3);
 });
+
+test("getAvailability can skip All Star server-side fetches", async () => {
+  const { getAvailability } = await import(`../lib/availability.mjs?skip-allstar=${Date.now()}`);
+  const originalFetch = global.fetch;
+  const requestedUrls = [];
+
+  global.fetch = async (url) => {
+    requestedUrls.push(url.toString());
+    if (url.toString().includes("lta.org.uk/api/courtdetail/availability")) {
+      return {
+        ok: true,
+        json: async () => ({ venueDetails: [] })
+      };
+    }
+    if (url.toString().includes("clubspark.lta.org.uk")) {
+      throw new Error("ClubSpark blocked in test");
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
+
+  try {
+    const result = await getAvailability("2026-06-25", { skipAllStar: true });
+    assert.equal(result.status, 200);
+    assert.equal(requestedUrls.some((url) => url.includes("widgets.mindbodyonline.com")), false);
+    assert.equal(result.data.locations.some((location) => location.provider === "All Star"), false);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
