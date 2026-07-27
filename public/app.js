@@ -2,13 +2,19 @@ const TIMES = Array.from({ length: 16 }, (_, index) =>
   `${String(index + 6).padStart(2, "0")}:00`
 );
 const COMPACT_GRID = window.matchMedia("(max-width: 580px)");
+const LTA_CODES = new Set(["CC", "SC", "SV", "BP", "BL", "HGP", "SPN", "WIM"]);
+const DEFAULT_LOCATION_CODES = new Set([
+  "FR", "KGP", "LG", "TC", "WC", "WP",
+  "CC", "SC", "SV", "BP", "BL", "BPK"
+]);
 
 const state = {
   data: null,
   view: "grid",
   map: null,
   markerLayer: null,
-  selectedLocationCodes: new Set(),
+  selectedLocationCodes: new Set(DEFAULT_LOCATION_CODES),
+  availableLocationCodes: new Set(),
   selectedTimes: new Set()
 };
 
@@ -74,6 +80,9 @@ async function loadAvailability() {
 
   try {
     const params = new URLSearchParams({ date: elements.date.value, skip: "allstar" });
+    params.set("lta", [...state.selectedLocationCodes]
+      .filter((code) => LTA_CODES.has(code))
+      .join(","));
     const response = await fetch(`/api/availability?${params}`);
     let data = await response.json();
     if (!response.ok) throw new Error(data.detail || data.error || "Availability request failed");
@@ -150,7 +159,12 @@ function importBattersea() {
 }
 
 function populateLocations() {
-  const validCodes = new Set(state.data.locations.map((location) => location.code));
+  const locationOptions = [...new Map([
+    ...state.data.locations,
+    ...(state.data.locationOptions || [])
+  ].map((location) => [location.code, location])).values()];
+  const validCodes = new Set(locationOptions.map((location) => location.code));
+  state.availableLocationCodes = validCodes;
   state.selectedLocationCodes = new Set(
     [...state.selectedLocationCodes].filter((code) => validCodes.has(code))
   );
@@ -162,7 +176,7 @@ function populateLocations() {
   elements.locationFilterOptions.append(allLabel);
 
   const providers = new Map();
-  for (const location of state.data.locations) {
+  for (const location of locationOptions) {
     if (!providers.has(location.provider)) providers.set(location.provider, []);
     providers.get(location.provider).push(location);
   }
@@ -184,11 +198,15 @@ function populateLocations() {
 
 function updateLocationFilter() {
   const count = state.selectedLocationCodes.size;
-  elements.locationFilterLabel.textContent = count
-    ? `${count} ${count === 1 ? "location" : "locations"}`
-    : "All locations";
+  const allSelected = state.availableLocationCodes.size > 0 &&
+    [...state.availableLocationCodes].every((code) => state.selectedLocationCodes.has(code));
+  elements.locationFilterLabel.textContent = allSelected
+    ? "All locations"
+    : count
+      ? `${count} ${count === 1 ? "location" : "locations"}`
+      : "No locations";
   const all = elements.locationFilterOptions.querySelector('input[value="all"]');
-  if (all) all.checked = count === 0;
+  if (all) all.checked = allSelected;
   elements.locationFilterOptions.querySelectorAll('input:not([value="all"])')
     .forEach((input) => {
       input.checked = state.selectedLocationCodes.has(input.value);
@@ -230,7 +248,7 @@ function visibleData() {
   if (!state.data) return { locations: [], courts: [], slots: [] };
   const surfaceFilter = elements.surface.value;
   const matchingSurfaceAndLocation = state.data.courts.filter((court) =>
-    (!state.selectedLocationCodes.size || state.selectedLocationCodes.has(court.location)) &&
+    state.selectedLocationCodes.has(court.location) &&
     (surfaceFilter === "all" || court.surface === surfaceFilter)
   );
   const courts = CourtFilters.courtsAvailableAtAllTimes(
@@ -242,7 +260,7 @@ function visibleData() {
 
   return {
     locations: state.data.locations.filter((location) =>
-      (!state.selectedLocationCodes.size || state.selectedLocationCodes.has(location.code)) &&
+      state.selectedLocationCodes.has(location.code) &&
       courts.some((court) => court.location === location.code)
     ),
     courts,
@@ -850,15 +868,26 @@ elements.availability.addEventListener("click", (event) => {
 elements.locationFilterOptions.addEventListener("change", (event) => {
   const input = event.target.closest('input[type="checkbox"]');
   if (!input) return;
+  const previousLtaCodes = [...state.selectedLocationCodes]
+    .filter((code) => LTA_CODES.has(code))
+    .sort()
+    .join(",");
   if (input.value === "all") {
-    state.selectedLocationCodes.clear();
+    state.selectedLocationCodes = new Set(input.checked
+      ? state.availableLocationCodes
+      : [...DEFAULT_LOCATION_CODES].filter((code) => state.availableLocationCodes.has(code)));
   } else if (input.checked) {
     state.selectedLocationCodes.add(input.value);
   } else {
     state.selectedLocationCodes.delete(input.value);
   }
   updateLocationFilter();
-  render();
+  const selectedLtaCodes = [...state.selectedLocationCodes]
+    .filter((code) => LTA_CODES.has(code))
+    .sort()
+    .join(",");
+  if (selectedLtaCodes !== previousLtaCodes) loadAvailability();
+  else render();
 });
 elements.surface.addEventListener("change", render);
 elements.timeFilterOptions.addEventListener("change", (event) => {

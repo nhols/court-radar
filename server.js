@@ -48,8 +48,10 @@ const server = http.createServer(async (request, response) => {
   if (url.pathname === "/api/availability") {
     try {
       const { getAvailability } = await availabilityModule;
+      const lta = url.searchParams.get("lta");
       const result = await getAvailability(url.searchParams.get("date"), {
-        skipAllStar: url.searchParams.get("skip") === "allstar"
+        skipAllStar: url.searchParams.get("skip") === "allstar",
+        ltaLocations: lta === null ? undefined : lta.split(",").filter(Boolean)
       });
       return sendJson(response, result.status, result.data);
     } catch (error) {

@@ -157,9 +157,39 @@ test("getAvailability can skip All Star server-side fetches", async () => {
 
   try {
     const result = await getAvailability("2026-06-25", { skipAllStar: true });
+    const defaultLtaRequests = requestedUrls.filter((url) =>
+      url.includes("lta.org.uk/api/courtdetail/availability")
+    );
     assert.equal(result.status, 200);
+    assert.equal(defaultLtaRequests.length, 5);
+    assert.equal(defaultLtaRequests.some((url) => [
+      "e37baae4-39b1-47b0-bd81-b2cdbb6f7a8f",
+      "1e2f9c9a-99df-4aca-b02f-e1587d765f2e",
+      "b1a2dc34-d3b5-4b01-930e-bbd9c40b2464"
+    ].some((id) => url.includes(id))), false);
+    assert.deepEqual(result.data.locationOptions.map((location) => location.code), [
+      "CC", "SC", "SV", "BP", "BL", "HGP", "SPN", "WIM"
+    ]);
     assert.equal(requestedUrls.some((url) => url.includes("widgets.mindbodyonline.com")), false);
     assert.equal(result.data.locations.some((location) => location.provider === "All Star"), false);
+
+    requestedUrls.length = 0;
+    const included = await getAvailability("2026-06-25", {
+      skipAllStar: true,
+      ltaLocations: ["CC", "SC", "SV", "BP", "BL", "HGP", "SPN", "WIM"]
+    });
+    const includedLtaRequests = requestedUrls.filter((url) =>
+      url.includes("lta.org.uk/api/courtdetail/availability")
+    );
+    assert.equal(includedLtaRequests.length, 8);
+    for (const [code, id] of [
+      ["HGP", "e37baae4-39b1-47b0-bd81-b2cdbb6f7a8f"],
+      ["SPN", "1e2f9c9a-99df-4aca-b02f-e1587d765f2e"],
+      ["WIM", "b1a2dc34-d3b5-4b01-930e-bbd9c40b2464"]
+    ]) {
+      assert.equal(includedLtaRequests.some((url) => url.includes(`venueid=${id}`)), true);
+      assert.equal(included.data.locations.some((location) => location.code === code), true);
+    }
   } finally {
     global.fetch = originalFetch;
   }

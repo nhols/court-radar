@@ -3,7 +3,9 @@
 An at-a-glance view of live tennis court availability across South London.
 It consolidates All Star Tennis, LTA and ClubSpark booking feeds, covering the
 six All Star locations plus Clapham Common, Streatham Common, Streatham Vale,
-Brockwell Park, Belair Park and Battersea Park.
+Brockwell Park, Belair Park and Battersea Park. Hillside Gardens Park, The
+Spencer Lawn Tennis Club and Wimbledon Park are available as opt-in venues, so
+they are not queried during normal page loads.
 
 Live at [court-radar-london.pages.dev](https://court-radar-london.pages.dev/).
 
