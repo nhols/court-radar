@@ -67,7 +67,9 @@ export function loadVenue(code, date, { force = false } = {}) {
     venue: code,
     date,
     status: "error",
-    error: error.name === "TimeoutError" ? "Took too long to answer" : error.message,
+    error: !navigator.onLine
+      ? "You're offline"
+      : error.name === "TimeoutError" ? "Took too long to answer" : error.message,
     courts: [],
     slots: []
   }));

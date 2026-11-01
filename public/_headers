@@ -1,0 +1,6 @@
+# Browsers check for a new service worker on every visit.
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json

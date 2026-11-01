@@ -327,3 +327,10 @@ setInterval(renderFreshness, 15_000);
 if (state.sort === "near") requestPosition();
 load();
 commit({ remember: false });
+
+// Installable app: the service worker keeps the app itself working offline.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

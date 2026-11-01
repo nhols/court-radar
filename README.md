@@ -34,6 +34,14 @@ rather than all of them), `full=show` (show fully booked courts too),
 LTA sometimes takes 30 seconds or more to answer. If it hasn't answered within
 6 seconds, the server sends a second request and uses whichever answers first.
 
+## Installing
+
+Court Radar is a progressive web app: "Add to Home Screen" on iPhone, or
+"Install app" in Chrome, gives it its own icon and full-screen window. The
+service worker in `public/sw.js` keeps the app itself available offline but
+never stores availability. Bump its `VERSION` when the list of app files
+changes.
+
 ## Venues
 
 `public/shared/venues.js` is the one list of venues. All Star venues are
