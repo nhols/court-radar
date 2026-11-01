@@ -258,7 +258,16 @@ const controls = createControls(actions);
 
 attachGridInteractions(elements.grid, elements.tooltip, (action, data) => {
   if (action === "toggle-hour") actions.toggleHour(Number(data.hour));
-  if (action === "choose-venues") controls.openVenues();
+  if (action === "choose-venues") {
+    // The venue picker lives in the filter panel, so roll that down first.
+    if (state.filtersOpen) {
+      controls.openVenues();
+    } else {
+      state.filtersOpen = true;
+      commit();
+      setTimeout(() => controls.openVenues(), 400);
+    }
+  }
   if (action === "collapse-all") {
     state.collapsed = state.collapsed.size ? new Set() : new Set(state.venues);
     commit();
