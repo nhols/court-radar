@@ -2,137 +2,135 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#123c2d">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#123c2d" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0d1713" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="Live tennis court availability across South London, in one grid.">
     <title>Court Radar — South London tennis availability</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      crossorigin=""
-    >
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <header class="masthead">
-      <a class="brand" href="/" aria-label="Court Radar home">
-        <span class="brand-mark" aria-hidden="true">✦</span>
-        <span>Court Radar</span>
-      </a>
-      <p class="strapline">South London tennis availability, without the tab safari.</p>
-      <p class="live-note"><span class="pulse"></span><span id="freshness">Checking courts…</span></p>
-    </header>
+    <div class="app">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Court Radar home">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span>Court Radar</span>
+        </a>
+        <p class="strapline">South London tennis courts, without the tab safari.</p>
+        <div class="topbar-actions">
+          <p class="freshness" aria-live="polite">
+            <span class="pulse" aria-hidden="true"></span>
+            <span id="freshness">Checking courts…</span>
+          </p>
+          <button id="refresh" class="icon-button" type="button" aria-label="Refresh availability" title="Refresh">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+          </button>
+          <button id="share" class="icon-button" type="button" aria-label="Copy a link to this view" title="Copy link">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>
+          </button>
+        </div>
+      </header>
 
-    <main>
-      <section class="control-bar" aria-label="Availability controls">
-        <div class="date-control">
-          <button id="previous-day" class="icon-button" type="button" aria-label="Previous day">←</button>
-          <label>
-            <span>Date</span>
-            <input id="date" type="date">
-          </label>
-          <button id="next-day" class="icon-button" type="button" aria-label="Next day">→</button>
+      <nav class="days" aria-label="Date">
+        <div id="day-strip" class="day-strip"></div>
+      </nav>
+
+      <section class="toolbar" aria-label="Filters">
+        <div class="filter">
+          <button id="venues-button" class="pill" type="button" aria-expanded="false" aria-controls="venues-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="sr-only">Venues:</span>
+            <strong id="venues-label">—</strong>
+          </button>
+          <div id="venues-panel" class="popover venues-popover" hidden>
+            <div class="popover-head">
+              <h2>Venues</h2>
+              <button class="popover-close" type="button" data-close aria-label="Close">×</button>
+            </div>
+            <input id="venue-search" class="search" type="search" placeholder="Search by name or postcode" autocomplete="off">
+            <div class="quick-actions">
+              <button type="button" data-venues="all">All</button>
+              <button type="button" data-venues="none">None</button>
+            </div>
+            <div id="venue-options" class="venue-options"></div>
+          </div>
         </div>
 
-        <details class="location-multiselect multi-select">
-          <summary>
-            <span>Location</span>
-            <strong id="location-filter-label">All locations</strong>
-          </summary>
-          <div id="location-filter-options" class="multi-select-options"></div>
-        </details>
+        <div class="filter">
+          <button id="hours-button" class="pill" type="button" aria-expanded="false" aria-controls="hours-panel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span class="sr-only">Hours:</span>
+            <strong id="hours-label">Any time</strong>
+          </button>
+          <div id="hours-panel" class="popover hours-popover" hidden>
+            <div class="popover-head">
+              <h2>Hours</h2>
+              <button class="popover-close" type="button" data-close aria-label="Close">×</button>
+            </div>
+            <div class="presets">
+              <button type="button" data-preset="any">Any time</button>
+              <button type="button" data-preset="morning">Morning</button>
+              <button type="button" data-preset="afternoon">Afternoon</button>
+              <button type="button" data-preset="evening">Evening</button>
+            </div>
+            <div id="hour-options" class="hour-options"></div>
+            <fieldset class="match-options">
+              <legend>A court must be free</legend>
+              <label><input type="radio" name="match" value="all"> At every chosen hour</label>
+              <label><input type="radio" name="match" value="any"> At any chosen hour</label>
+            </fieldset>
+            <p class="hint">You can also tap an hour at the top of the grid.</p>
+          </div>
+        </div>
 
-        <label class="select-control">
-          <span>Surface</span>
-          <select id="surface-filter">
-            <option value="all">All surfaces</option>
-            <option value="hard">Hard courts</option>
-            <option value="carpet">Carpet courts</option>
+        <label class="pill switch">
+          <input id="hide-full" type="checkbox" role="switch" checked>
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span>Hide full courts</span>
+        </label>
+
+        <div id="surface-control" class="segmented" role="group" aria-label="Surface"></div>
+
+        <label class="pill select-pill">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 16 4 4 4-4M7 20V4M21 8l-4-4-4 4M17 4v16"/></svg>
+          <span class="sr-only">Sort</span>
+          <select id="sort">
+            <option value="default">Venue list</option>
+            <option value="free">Most free</option>
+            <option value="near">Nearest to me</option>
           </select>
         </label>
 
-        <details class="time-multiselect multi-select">
-          <summary>
-            <span>Hours</span>
-            <strong id="time-filter-label">Any hour</strong>
-          </summary>
-          <div id="time-filter-options" class="multi-select-options time-select-options"></div>
-        </details>
-
-        <div class="view-toggle" aria-label="View">
-          <button class="view-button active" data-view="grid" type="button">Grid</button>
-          <button class="view-button" data-view="map" type="button">Map</button>
+        <div class="segmented view-toggle" role="group" aria-label="View">
+          <button type="button" data-view="grid" title="Grid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><span class="sr-only">Grid</span></button>
+          <button type="button" data-view="map" title="Map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2ZM9 4v14M15 6v14"/></svg><span class="sr-only">Map</span></button>
         </div>
-
-        <button id="refresh" class="refresh-button" type="button">Refresh</button>
       </section>
 
-      <section class="summary" aria-live="polite">
-        <div>
-          <strong id="slot-count">—</strong>
-          <span>open court-hours</span>
-        </div>
-        <div>
-          <strong id="court-count">—</strong>
-          <span>courts with space</span>
-        </div>
-        <p id="best-bet">Hunting for the best bet…</p>
+      <section class="summary">
+        <p id="summary" aria-live="polite">Hunting for open courts…</p>
+        <button id="collapse-all" class="icon-button small" type="button" title="Collapse all venues" aria-label="Collapse all venues">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 20 5-5 5 5M7 4l5 5 5-5"/></svg>
+        </button>
       </section>
 
-      <div id="notice" class="notice" hidden></div>
-      <div id="availability" class="availability" aria-live="polite"></div>
-      <section id="map-view" class="map-view" hidden aria-label="Court locations map">
-        <div class="map-key">
-          <span><i class="key-dot open"></i> Has availability</span>
-          <span><i class="key-dot full"></i> No availability</span>
-        </div>
-        <div id="map" class="map"></div>
-      </section>
-    </main>
-
-    <dialog id="battersea-import-dialog" class="import-dialog">
-      <form method="dialog" class="import-dialog-card">
-        <div class="import-dialog-heading">
-          <div>
-            <span class="eyebrow">Manual live import</span>
-            <h2>Battersea Park</h2>
+      <main class="stage">
+        <div id="grid-view" class="grid-scroller" aria-label="Court availability"></div>
+        <div id="map-view" class="map-view" hidden>
+          <div id="map" class="map"></div>
+          <div class="map-key">
+            <span><i class="key-dot open"></i> Has availability</span>
+            <span><i class="key-dot full"></i> No availability</span>
+            <span><i class="key-dot off"></i> Not in your venues</span>
           </div>
-          <button class="dialog-close" value="cancel" aria-label="Close">×</button>
         </div>
+      </main>
+    </div>
 
-        <ol class="import-steps">
-          <li>
-            <a id="open-battersea-json" class="open-json-button" href="#" target="_blank"
-              rel="noreferrer">Open ClubSpark JSON ↗</a>
-          </li>
-          <li>Select all and copy the raw JSON shown in the new tab.</li>
-          <li>Paste it below. Court Radar processes it only in this browser.</li>
-        </ol>
-
-        <label class="json-input">
-          <span>ClubSpark response for <strong id="battersea-import-date"></strong></span>
-          <textarea id="battersea-json" rows="9" spellcheck="false"
-            placeholder='Paste the response beginning with {"Resources":…}'></textarea>
-        </label>
-        <p id="battersea-import-status" class="import-status" role="status"></p>
-
-        <div class="import-dialog-actions">
-          <button class="cancel-button" value="cancel">Cancel</button>
-          <button id="import-battersea-json" class="import-button" type="button">
-            Import availability
-          </button>
-        </div>
-      </form>
-    </dialog>
-
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      crossorigin=""
-      defer
-    ></script>
-    <script src="/battersea-import.js" defer></script>
-    <script src="/allstar-browser.js" defer></script>
-    <script src="/availability-filter.js" defer></script>
-    <script src="/app.js" defer></script>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+    <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+    <script type="module" src="/js/main.js"></script>
   </body>
 </html>

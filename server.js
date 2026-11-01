@@ -1,24 +1,24 @@
-const http = require("node:http");
-const fs = require("node:fs");
-const path = require("node:path");
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { handleAvailabilityRequest } from "./lib/availability.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
-const PUBLIC_DIR = path.join(__dirname, "public");
-const availabilityModule = import("./lib/availability.mjs");
-
-function sendJson(response, status, data) {
-  response.writeHead(status, {
-    "content-type": "application/json; charset=utf-8",
-    "cache-control": "no-store"
-  });
-  response.end(JSON.stringify(data));
-}
+const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".json": "application/json; charset=utf-8"
+};
 
 function serveStatic(response, pathname) {
-  const relativePath = pathname === "/" ? "index.html" : pathname.slice(1);
+  const relativePath = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
   const filePath = path.resolve(PUBLIC_DIR, relativePath);
 
-  if (!filePath.startsWith(`${PUBLIC_DIR}${path.sep}`) && filePath !== path.join(PUBLIC_DIR, "index.html")) {
+  if (!filePath.startsWith(`${PUBLIC_DIR}${path.sep}`)) {
     response.writeHead(403);
     return response.end("Forbidden");
   }
@@ -28,41 +28,29 @@ function serveStatic(response, pathname) {
       response.writeHead(error.code === "ENOENT" ? 404 : 500);
       return response.end(error.code === "ENOENT" ? "Not found" : "Server error");
     }
-    const extension = path.extname(filePath);
-    const types = {
-      ".html": "text/html; charset=utf-8",
-      ".css": "text/css; charset=utf-8",
-      ".js": "text/javascript; charset=utf-8",
-      ".svg": "image/svg+xml"
-    };
     response.writeHead(200, {
-      "content-type": types[extension] || "application/octet-stream",
+      "content-type": TYPES[path.extname(filePath)] || "application/octet-stream",
       "cache-control": "no-store"
     });
     response.end(contents);
   });
 }
 
-const server = http.createServer(async (request, response) => {
+export const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   if (url.pathname === "/api/availability") {
     try {
-      const { getAvailability } = await availabilityModule;
-      const lta = url.searchParams.get("lta");
-      const result = await getAvailability(url.searchParams.get("date"), {
-        skipAllStar: url.searchParams.get("skip") === "allstar",
-        ltaLocations: lta === null ? undefined : lta.split(",").filter(Boolean)
-      });
-      return sendJson(response, result.status, result.data);
+      const result = await handleAvailabilityRequest(url);
+      response.writeHead(result.status, result.headers);
+      return response.end(JSON.stringify(result.body));
     } catch (error) {
-      return sendJson(response, 500, { error: "Availability request failed.", detail: error.message });
+      response.writeHead(500, { "content-type": "application/json; charset=utf-8" });
+      return response.end(JSON.stringify({ error: "Availability request failed.", detail: error.message }));
     }
   }
   serveStatic(response, url.pathname);
 });
 
-if (require.main === module) {
-  server.listen(PORT, () => console.log(`Court radar ready at http://localhost:${PORT}`));
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  server.listen(PORT, () => console.log(`Court Radar ready at http://localhost:${PORT}`));
 }
-
-module.exports = { server };

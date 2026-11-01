@@ -1,8 +1,8 @@
 {
-  "name": "allstar-tennis-bookings",
+  "name": "court-radar",
   "version": "1.0.0",
   "private": true,
-  "description": "An at-a-glance view of All Star Tennis court availability.",
+  "description": "Live tennis court availability across South London, in one grid.",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
@@ -12,5 +12,6 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "type": "module"
 }
