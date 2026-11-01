@@ -366,6 +366,11 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 
 .quick-actions button:hover, .presets button:hover { border-color: var(--ink); }
 
+/* The search box and actions stay put while the venue list scrolls. */
+.venues-popover { display: flex; flex-direction: column; overflow: hidden; }
+.venues-popover > * { flex: none; }
+.venues-popover .venue-options { flex: 1 1 auto; min-height: 0; overflow: auto; }
+
 .venue-options fieldset { margin: 0 0 8px; padding: 0; border: 0; }
 
 .venue-options legend, .match-options legend {
@@ -933,10 +938,10 @@ tbody.is-linked .court-label { background: #f8fde4; }
     position: fixed;
     top: auto;
     right: 0;
-    bottom: 0;
+    bottom: var(--keyboard, 0px);
     left: 0;
     width: auto;
-    max-height: 82dvh;
+    max-height: min(82dvh, calc(var(--visible-height, 100dvh) - 16px));
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
     border-radius: 16px 16px 0 0;
   }

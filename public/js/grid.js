@@ -2,7 +2,7 @@
 // header and court column. Every free hour is its own square.
 
 import { SOURCES, bookingUrlForDate, googleMapsUrl } from "../shared/venues.js";
-import { formatDay, hourLabel } from "../shared/dates.js";
+import { addDays, formatDay, hourLabel, londonToday } from "../shared/dates.js";
 import { capitalise, escapeHtml, formatPrice, plural } from "./html.js";
 
 let cellInfo = new Map();
@@ -22,6 +22,15 @@ function priceText(slot) {
   return parts.join(" · ");
 }
 
+// LTA's feed only covers the public window, so a venue's own members may
+// already be able to book a date that's not yet open to the public.
+export function bookingOpensText(venue, result) {
+  const day = result.bookableFrom === addDays(londonToday(), 1) ? "tomorrow" : formatDay(result.bookableFrom);
+  return venue.source === "mindbody"
+    ? `Member Plus booking opens ${day}`
+    : `Public booking opens ${day} · members may book now`;
+}
+
 function venueStatus(section) {
   const { result, venue } = section;
   switch (section.status) {
@@ -31,8 +40,7 @@ function venueStatus(section) {
       return `<span class="status status-error">Didn't answer · ${escapeHtml(result.error || "unknown error")}</span>
         <button class="text-button" type="button" data-action="retry" data-venue="${venue.code}">Retry</button>`;
     case "outside-window":
-      return `<span class="status status-later">Bookings open ${escapeHtml(formatDay(result.bookableFrom))}${
-        venue.source === "mindbody" ? " for Member Plus" : ""}</span>`;
+      return `<span class="status status-later">${escapeHtml(bookingOpensText(venue, result))}</span>`;
     case "closed":
       return `<span class="status status-later">${escapeHtml(result.note)}</span>`;
     // Member Plus-only slots are shown by their pale orange cells, so the

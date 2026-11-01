@@ -52,6 +52,21 @@ export function createControls(actions) {
   let settleTimer = null;
   let renderedStripFor = null;
 
+  // Phone keyboards cover the bottom of the screen without resizing the page,
+  // so bottom sheets are lifted clear of the keyboard and kept within what's
+  // still visible.
+  const viewport = window.visualViewport;
+  if (viewport) {
+    const fitAboveKeyboard = () => {
+      const root = document.documentElement.style;
+      root.setProperty("--keyboard", `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`);
+      root.setProperty("--visible-height", `${viewport.height}px`);
+    };
+    viewport.addEventListener("resize", fitAboveKeyboard);
+    viewport.addEventListener("scroll", fitAboveKeyboard);
+    fitAboveKeyboard();
+  }
+
   function closePopover() {
     if (!open) return;
     open.panel.hidden = true;

@@ -4,6 +4,7 @@
 
 import { VENUES, googleMapsUrl } from "../shared/venues.js";
 import { escapeHtml, plural } from "./html.js";
+import { bookingOpensText } from "./grid.js";
 
 const MAPLIBRE = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl";
 const STYLE = "https://tiles.openfreemap.org/styles/liberty";
@@ -38,7 +39,8 @@ function message(element, title, detail) {
 function summaryFor(section, isSelected) {
   if (!isSelected) return "Not in your venues";
   if (section?.status === "live") return `${plural(section.freeCourts || 0, "court")} free · ${plural(section.free, "open hour")}`;
-  if (section?.status === "outside-window" || section?.status === "closed") return "Not bookable for this date";
+  if (section?.status === "outside-window") return bookingOpensText(section.venue, section.result);
+  if (section?.status === "closed") return "Not bookable online for this date";
   if (section?.status === "error") return "Didn’t answer";
   return "Checking…";
 }
