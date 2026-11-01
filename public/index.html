@@ -12,13 +12,20 @@
   </head>
   <body>
     <div class="app">
+      <div class="bar" id="bar">
       <header class="topbar">
         <a class="brand" href="/" aria-label="Court Radar home">
           <span class="brand-mark" aria-hidden="true">✦</span>
-          <span>Court Radar</span>
+          <span class="brand-name">Court Radar</span>
         </a>
-        <p class="strapline">South London tennis courts, without the tab safari.</p>
         <div class="topbar-actions">
+          <button id="filters-toggle" class="icon-button filters-toggle" type="button" aria-expanded="false" aria-controls="filters" title="Filters">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+          </button>
+          <div class="segmented view-toggle" role="group" aria-label="View">
+            <button type="button" data-view="grid" title="Grid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><span class="sr-only">Grid</span></button>
+            <button type="button" data-view="map" title="Map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2ZM9 4v14M15 6v14"/></svg><span class="sr-only">Map</span></button>
+          </div>
           <p class="freshness" aria-live="polite">
             <span class="pulse" aria-hidden="true"></span>
             <span id="freshness">Checking courts…</span>
@@ -36,7 +43,7 @@
         <div id="day-strip" class="day-strip"></div>
       </nav>
 
-      <section class="toolbar" aria-label="Filters">
+      <section id="filters" class="toolbar" aria-label="Filters">
         <div class="filter">
           <button id="venues-button" class="pill" type="button" aria-expanded="false" aria-controls="venues-panel">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -87,7 +94,7 @@
         <label class="pill switch">
           <input id="hide-full" type="checkbox" role="switch" checked>
           <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-          <span>Hide full courts</span>
+          <span>Hide unavailable</span>
         </label>
 
         <div id="surface-control" class="segmented" role="group" aria-label="Surface"></div>
@@ -101,19 +108,9 @@
             <option value="near">Nearest to me</option>
           </select>
         </label>
-
-        <div class="segmented view-toggle" role="group" aria-label="View">
-          <button type="button" data-view="grid" title="Grid"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg><span class="sr-only">Grid</span></button>
-          <button type="button" data-view="map" title="Map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2ZM9 4v14M15 6v14"/></svg><span class="sr-only">Map</span></button>
-        </div>
       </section>
 
-      <section class="summary">
-        <p id="summary" aria-live="polite">Hunting for open courts…</p>
-        <button id="collapse-all" class="icon-button small" type="button" title="Collapse all venues" aria-label="Collapse all venues">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 20 5-5 5 5M7 4l5 5 5-5"/></svg>
-        </button>
-      </section>
+      </div>
 
       <main class="stage">
         <div id="grid-view" class="grid-scroller" aria-label="Court availability"></div>

@@ -16,6 +16,16 @@ export const HOUR_PRESETS = {
 
 const $ = (selector) => document.querySelector(selector);
 
+// A select is as wide as its longest option; this sizes it to the chosen one.
+function fitSelect(select) {
+  const probe = document.createElement("span");
+  probe.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${getComputedStyle(select).font}`;
+  probe.textContent = select.selectedOptions[0]?.text || "";
+  document.body.append(probe);
+  select.style.width = `${probe.offsetWidth + 24}px`;
+  probe.remove();
+}
+
 export function createControls(actions) {
   const elements = {
     dayStrip: $("#day-strip"),
@@ -29,6 +39,8 @@ export function createControls(actions) {
     surface: $("#surface-control"),
     sort: $("#sort"),
     hideFull: $("#hide-full"),
+    filtersToggle: $("#filters-toggle"),
+    filters: $("#filters"),
     viewButtons: [...document.querySelectorAll("[data-view]")],
     backdrop: $("#sheet-backdrop")
   };
@@ -37,6 +49,7 @@ export function createControls(actions) {
     { button: elements.hoursButton, panel: $("#hours-panel") }
   ];
   let open = null;
+  let settleTimer = null;
   let renderedStripFor = null;
 
   function closePopover() {
@@ -104,6 +117,12 @@ export function createControls(actions) {
   elements.surface.addEventListener("click", (event) => {
     const button = event.target.closest("[data-surface]");
     if (button) actions.setSurface(button.dataset.surface);
+  });
+  elements.filtersToggle.addEventListener("click", () => actions.toggleFilters());
+  elements.filters.addEventListener("transitionend", (event) => {
+    if (event.target === elements.filters && event.propertyName === "max-height") {
+      elements.filters.classList.toggle("settled", elements.filters.classList.contains("open"));
+    }
   });
   elements.hideFull.addEventListener("change", () => actions.toggleHideFull());
   elements.sort.addEventListener("change", () => actions.setSort(elements.sort.value));
@@ -191,7 +210,21 @@ export function createControls(actions) {
       </button>`).join("");
 
     elements.sort.value = state.sort;
+    fitSelect(elements.sort);
     elements.hideFull.checked = state.hideFull;
+    if (elements.filters.classList.contains("open") !== state.filtersOpen) {
+      closePopover();
+      elements.filters.classList.remove("settled");
+      elements.filters.classList.toggle("open", state.filtersOpen);
+      // Backstop for when no transition runs (reduced motion, or roomy rows).
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        elements.filters.classList.toggle("settled", elements.filters.classList.contains("open"));
+      }, 350);
+    }
+    elements.filtersToggle.setAttribute("aria-expanded", String(state.filtersOpen));
+    elements.filtersToggle.title = state.filtersOpen ? "Hide filters" : "Show filters";
+    elements.filtersToggle.setAttribute("aria-label", elements.filtersToggle.title);
     elements.viewButtons.forEach((button) =>
       button.setAttribute("aria-pressed", String(button.dataset.view === state.view)));
   }

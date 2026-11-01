@@ -58,7 +58,7 @@ function venueHead(section, { columnCount, date, collapsed }) {
         : '<span class="collapse-spacer"></span>'}
       <span class="badge badge-${venue.source}" title="${escapeHtml(venue.group)}">${escapeHtml(SOURCES[venue.source].short)}</span>
       <div class="venue-title">
-        <h2>${escapeHtml(venue.name)}</h2>
+        <h2 title="${escapeHtml(`${venue.group} · ${venue.rules}`)}">${escapeHtml(venue.name)}</h2>
         <p class="venue-meta">${venueStatus(section)}<span class="rules">${escapeHtml(venue.rules)}${distance}</span></p>
       </div>
       <a class="book-link" href="${escapeHtml(googleMapsUrl(venue))}" target="_blank" rel="noreferrer"
@@ -97,9 +97,10 @@ function courtRow(section, row, columns, { hours, pastBefore, date, columnTotals
       href="${escapeHtml(slot.bookingUrl)}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(label)}"></a></td>`;
   }).join("");
 
-  return `<tr class="court-row"><th scope="row" class="court-label">
-    <span class="court-name">${escapeHtml(row.court.name)}</span>
-    <span class="surface">${escapeHtml(row.court.surface)}</span>
+  // Court labels are shortened to "1 H"; the full name and surface are in the hover text.
+  const shortName = row.court.name.replace(/^court\s*/i, "");
+  return `<tr class="court-row"><th scope="row" class="court-label" title="${escapeHtml(`${row.court.name} · ${row.court.surface}`)}">
+    <span class="court-short">${escapeHtml(shortName)}<small>${escapeHtml(row.court.surface[0].toUpperCase())}</small></span>
   </th>${cells}</tr>`;
 }
 
@@ -108,7 +109,7 @@ function loadingRows(columns) {
     columns.map(() => '<td class="slot-cell"><span class="shimmer"></span></td>').join("")}</tr>`;
 }
 
-export function renderGrid(container, model, { date, hours, collapsed, pastBefore, surface }) {
+export function renderGrid(container, model, { date, hours, collapsed, allCollapsed, pastBefore, surface }) {
   cellInfo = new Map();
   const { columns, sections, nothingMatches } = model;
   const columnTotals = new Map(columns.map((hour) => [hour, 0]));
@@ -156,7 +157,11 @@ export function renderGrid(container, model, { date, hours, collapsed, pastBefor
     : "";
 
   container.innerHTML = `<table class="grid" style="--columns: ${columns.length}">
-    <thead><tr><th scope="col" class="corner">Court</th>${header}</tr></thead>
+    <thead><tr><th scope="col" class="corner"><span class="sr-only">Court</span>
+      <button class="collapse-all${allCollapsed ? " is-collapsed" : ""}" type="button" data-action="collapse-all"
+        title="${allCollapsed ? "Expand" : "Collapse"} all venues" aria-label="${allCollapsed ? "Expand" : "Collapse"} all venues">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 20 5-5 5 5M7 4l5 5 5-5"/></svg>
+      </button></th>${header}</tr></thead>
     ${bodies}
   </table>${footer}`;
 }

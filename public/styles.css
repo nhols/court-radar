@@ -11,9 +11,9 @@
   --orange: #ff7448;
   --blue: #cce7ff;
   --gutter: clamp(12px, 2.4vw, 32px);
-  --court-col: 132px;
-  --slot: 54px;
-  --row: 41px;
+  --court-col: 64px;
+  --slot: 34px;
+  --row: 30px;
   --serif: Georgia, "Times New Roman", serif;
   --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --shadow: 0 10px 28px rgba(21, 55, 44, .24);
@@ -45,7 +45,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .topbar {
@@ -80,7 +80,6 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   color: var(--acid);
 }
 
-.strapline { margin: 0; color: var(--muted); font-size: 13px; }
 
 .topbar-actions {
   min-width: 0;
@@ -273,19 +272,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .segmented button[aria-pressed="true"] { background: var(--ink); color: var(--acid); }
 .segmented button[aria-pressed="true"] svg { color: var(--acid); }
 
-.view-toggle { margin-left: auto; }
 
-.summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 var(--gutter) 8px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.summary p { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.summary strong { color: var(--ink); }
 
 .text-button {
   padding: 0;
@@ -298,7 +285,6 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   text-underline-offset: 3px;
 }
 
-.summary .icon-button { margin-left: auto; }
 .icon-button.small { width: 28px; height: 28px; }
 .icon-button.small svg { width: 15px; height: 15px; }
 /* Collapse shows arrows pointing in; expand shows them pointing out. */
@@ -547,16 +533,30 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   text-align: left;
 }
 
-.court-name { display: block; font-size: 12px; font-weight: 750; line-height: 1.2; }
+.court-short { font-size: 12px; font-weight: 750; white-space: nowrap; }
+.court-short small { margin-left: 4px; color: var(--muted); font-size: 9px; font-weight: 700; }
 
-.surface {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 500;
-  text-transform: uppercase;
+.collapse-all {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
 }
+
+.collapse-all svg { width: 13px; height: 13px; }
+.collapse-all:hover { border-color: var(--ink); background: var(--acid); }
+.collapse-all.is-collapsed svg { transform: rotate(180deg); }
+
+
 
 .slot-cell {
   height: var(--row);
@@ -842,21 +842,75 @@ tbody.flash .venue-row th { animation: flash 1.4s ease-out; }
 .popup-icon svg { width: 15px; height: 15px; }
 .popup-icon:hover { border-color: var(--ink); background: var(--acid); }
 
-/* Small screens */
-
-@media (max-width: 760px) {
-  .strapline { display: none; }
-  .view-toggle { margin-left: 0; }
+/* The top bar, then the dates on their own bar, then the filters, which roll
+   down from the filter button. */
+.bar {
+  max-height: 480px;
+  border-bottom: 1px solid rgba(21, 55, 44, .22);
+  background: var(--card);
+  transition: max-height .2s ease;
 }
 
-@media (max-width: 640px) {
-  :root { --court-col: 76px; --slot: 40px; --row: 40px; --gutter: 10px; }
+.topbar { padding: 6px var(--gutter); border-bottom: 0; }
+#freshness { display: none; }
+.brand-mark { width: 28px; height: 28px; }
+.freshness { margin: 0 4px; }
+.days { padding: 0 var(--gutter) 6px; }
+:is(.pill, .segmented) { height: 32px; }
+.pill { padding: 0 10px; gap: 6px; }
+.icon-button { width: 32px; height: 32px; }
+.day { grid-auto-flow: column; align-items: baseline; gap: 4px; min-width: 0; padding: 5px 9px; border-radius: 8px; }
+.day-number { font-size: 14px; }
+.stage { padding-top: 8px; }
 
-  .topbar { padding-block: 8px; }
+.filters-toggle[aria-expanded="true"] { border-color: var(--ink); background: var(--ink); color: var(--acid); }
+
+.toolbar {
+  flex-wrap: wrap;
+  max-height: 0;
+  padding: 0 var(--gutter);
+  overflow: hidden;
+  border-top: 1px solid transparent;
+  opacity: 0;
+  transition: max-height .25s ease, padding .25s ease, opacity .2s ease, border-color .25s ease;
+}
+
+.toolbar.open {
+  max-height: 260px;
+  padding-block: 8px;
+  border-top-color: var(--line);
+  opacity: 1;
+}
+
+/* Once rolled down, let the venue and hours popovers spill out of the panel. */
+.toolbar.open.settled { overflow: visible; }
+
+.grid { min-width: 0; }
+.grid-scroller { width: fit-content; max-width: 100%; margin-inline: auto; }
+.grid thead th { height: 28px; }
+.grid th.corner { padding-left: 8px; }
+.grid .court-label { padding: 0 6px 0 8px; }
+.slot-link::after { width: 6px; height: 6px; }
+.venue-head { gap: 8px; padding: 3px 10px; }
+.venue-title { display: flex; align-items: baseline; gap: 10px; overflow: hidden; }
+.venue-title h2 { font-size: 15px; white-space: nowrap; }
+.venue-meta { display: block; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rules { display: none; }
+.badge { min-width: 0; padding: 2px 5px; font-size: 9px; }
+.collapse, .collapse-spacer { width: 22px; height: 22px; }
+.book-link { width: 26px; height: 26px; }
+.book-link svg { width: 13px; height: 13px; }
+tbody.venue + tbody.venue .venue-row th { border-top-width: 2px; }
+
+/* Small screens */
+
+@media (max-width: 640px) {
+  :root { --gutter: 10px; --court-col: 48px; --slot: 32px; --row: 30px; }
+
+  .brand-name { display: none; }
   .freshness { font-size: 12px; }
-  .toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .toolbar::-webkit-scrollbar { display: none; }
   .toolbar > * { flex: 0 0 auto; }
+  .toolbar.open { max-height: 320px; }
 
   .popover {
     position: fixed;
@@ -878,14 +932,12 @@ tbody.flash .venue-row th { animation: flash 1.4s ease-out; }
     background: rgba(21, 55, 44, .3);
   }
 
-  .summary { font-size: 13px; }
   .stage { padding: 0; }
   .grid-scroller, .map-view { border-width: 1px 0 0; border-radius: 0; }
-  .venue-head { width: calc(100vw - 4px); padding: 9px 10px; gap: 8px; }
-  .venue-title h2 { font-size: 17px; }
-  .rules { display: none; }
-  .grid .court-label { padding: 4px 6px 4px 8px; }
-  .court-name { font-size: 10px; }
+  .venue-head { width: calc(100vw - 4px); }
+
+  /* The bar slides away while scrolling down the grid. */
+  .app.bar-hidden .bar { max-height: 0; border-bottom-width: 0; overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {

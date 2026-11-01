@@ -1,12 +1,11 @@
-import { VENUES, venueByCode } from "../shared/venues.js";
+import { VENUES } from "../shared/venues.js";
 import { addDays, daysBetween, londonHour, londonToday } from "../shared/dates.js";
 import { buildSearch, defaultDate, initialState, isSelectableDate, writeStored } from "./prefs.js";
 import { MAX_AGE_MS, loadVenue } from "./loader.js";
-import { buildGrid, hoursLabel, surfacesIn } from "./model.js";
+import { buildGrid, surfacesIn } from "./model.js";
 import { attachGridInteractions, renderGrid, revealVenue, scrollToHour } from "./grid.js";
 import { createControls } from "./controls.js";
 import { renderMap } from "./map.js";
-import { plural } from "./html.js";
 
 
 const storage = (() => {
@@ -30,12 +29,11 @@ const elements = {
   mapView: document.querySelector("#map-view"),
   map: document.querySelector("#map"),
   tooltip: document.querySelector("#tooltip"),
-  summary: document.querySelector("#summary"),
   freshness: document.querySelector("#freshness"),
   notice: document.querySelector("#notice"),
   refresh: document.querySelector("#refresh"),
   share: document.querySelector("#share"),
-  collapseAll: document.querySelector("#collapse-all")
+  app: document.querySelector(".app")
 };
 
 function today() {
@@ -111,22 +109,17 @@ function render() {
   });
 
   controls.update(state, { today: today(), surfaces: surfacesIn(results, state.venues) });
-  renderSummary(model);
   renderFreshness();
 
   elements.grid.hidden = state.view !== "grid";
   elements.mapView.hidden = state.view !== "map";
-  elements.collapseAll.hidden = state.view !== "grid";
-  const label = state.collapsed.size ? "Expand all venues" : "Collapse all venues";
-  elements.collapseAll.title = label;
-  elements.collapseAll.setAttribute("aria-label", label);
-  elements.collapseAll.classList.toggle("is-collapsed", state.collapsed.size > 0);
 
   if (state.view === "grid") {
     renderGrid(elements.grid, model, {
       date: state.date,
       hours: state.hours,
       collapsed: state.collapsed,
+      allCollapsed: state.collapsed.size > 0,
       pastBefore: pastBefore(),
       surface: state.surface
     });
@@ -151,22 +144,6 @@ function autoScroll(model) {
   else elements.grid.scrollLeft = 0;
 }
 
-function renderSummary(model) {
-  const { totals } = model;
-  if (!state.venues.size) {
-    elements.summary.textContent = "No venues selected";
-    return;
-  }
-  if (!model.sections.some((section) => section.status === "live") && totals.loading) {
-    elements.summary.textContent = `Checking ${plural(totals.loading, "venue")}…`;
-    return;
-  }
-  const when = state.hours.size ? ` ${hoursLabel(state.hours)}` : "";
-  const parts = [`<strong>${plural(totals.courts, "court")}</strong> free${when}`];
-  parts.push(`${plural(totals.slots, "open court-hour")}`);
-  elements.summary.innerHTML = parts.join(" · ");
-}
-
 function renderFreshness() {
   const selected = [...state.venues].map((code) => results.get(code)).filter(Boolean);
   const fetched = selected.map((result) => Date.parse(result.fetchedAt)).filter(Number.isFinite);
@@ -181,6 +158,7 @@ function renderFreshness() {
   const age = minutes < 1 ? "just now" : `${minutes} min ago`;
   const extra = loading ? ` · ${loading} loading` : errors ? ` · ${errors} not answering` : "";
   elements.freshness.textContent = `Updated ${age}${extra}`;
+  elements.freshness.parentElement.title = elements.freshness.textContent;
 }
 
 function showNotice(message) {
@@ -249,6 +227,10 @@ const actions = {
     else state.hours.add(hour);
     commit();
   },
+  toggleFilters() {
+    state.filtersOpen = !state.filtersOpen;
+    commit();
+  },
   toggleHideFull() {
     state.hideFull = !state.hideFull;
     commit();
@@ -277,6 +259,10 @@ const controls = createControls(actions);
 attachGridInteractions(elements.grid, elements.tooltip, (action, data) => {
   if (action === "toggle-hour") actions.toggleHour(Number(data.hour));
   if (action === "choose-venues") controls.openVenues();
+  if (action === "collapse-all") {
+    state.collapsed = state.collapsed.size ? new Set() : new Set(state.venues);
+    commit();
+  }
   if (action === "retry") load({ codes: [data.venue], force: true });
   if (action === "collapse") {
     if (state.collapsed.has(data.venue)) state.collapsed.delete(data.venue);
@@ -286,12 +272,6 @@ attachGridInteractions(elements.grid, elements.tooltip, (action, data) => {
 });
 
 elements.refresh.addEventListener("click", () => load({ force: true }));
-elements.collapseAll.addEventListener("click", () => {
-  state.collapsed = state.collapsed.size
-    ? new Set()
-    : new Set([...state.venues].filter((code) => venueByCode(code)));
-  commit();
-});
 elements.share.addEventListener("click", async () => {
   const url = new URL(location.href);
   if (!url.searchParams.has("date")) url.searchParams.set("date", state.date);
@@ -326,6 +306,21 @@ function refreshStale() {
   if (stale.length) load({ codes: stale, force: true });
 }
 document.addEventListener("visibilitychange", refreshStale);
+
+// On phones the bar slides away while scrolling down the grid and
+// comes back on the way up, so the grid gets the whole screen.
+const phone = window.matchMedia("(max-width: 640px)");
+let lastScrollTop = 0;
+elements.grid.addEventListener("scroll", () => {
+  const top = elements.grid.scrollTop;
+  if (phone.matches) {
+    if (top > lastScrollTop + 8 && top > 60) elements.app.classList.add("bar-hidden");
+    else if (top < lastScrollTop - 8 || top < 20) elements.app.classList.remove("bar-hidden");
+  } else {
+    elements.app.classList.remove("bar-hidden");
+  }
+  lastScrollTop = top;
+}, { passive: true });
 setInterval(refreshStale, 15_000);
 setInterval(renderFreshness, 15_000);
 
