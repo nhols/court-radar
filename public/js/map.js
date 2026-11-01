@@ -117,7 +117,7 @@ function addVenueLayers(maplibregl) {
     type: "circle",
     source: "venues",
     paint: {
-      "circle-radius": ["match", ["get", "tone"], "off", 6, 14],
+      "circle-radius": ["match", ["get", "tone"], "off", 7, 14],
       "circle-color": ["match", ["get", "tone"], "open", "#d9ff5f", "full", "#c7ccc4", "off", "#1f5a43", "#fffdf7"],
       "circle-opacity": ["match", ["get", "tone"], "off", 0.75, 1],
       "circle-stroke-width": ["match", ["get", "tone"], "off", 1.5, 2],
@@ -137,8 +137,22 @@ function addVenueLayers(maplibregl) {
     paint: { "text-color": "#15372c" }
   });
 
-  map.on("click", "venues", (event) => {
-    const code = event.features[0].properties.code;
+  // An invisible, finger-sized circle under each venue makes small dots easy
+  // to tap. Where tap areas overlap, the venue nearest the tap wins.
+  map.addLayer({
+    id: "venue-hits",
+    type: "circle",
+    source: "venues",
+    paint: { "circle-radius": 22, "circle-opacity": 0 }
+  });
+
+  map.on("click", "venue-hits", (event) => {
+    const distance = (feature) => {
+      const point = map.project(feature.geometry.coordinates);
+      return Math.hypot(point.x - event.point.x, point.y - event.point.y);
+    };
+    const nearest = event.features.reduce((best, feature) => (distance(feature) < distance(best) ? feature : best));
+    const code = nearest.properties.code;
     const venue = VENUES.find((item) => item.code === code);
     const section = latest.model.sections.find((item) => item.venue.code === code);
     new maplibregl.Popup({ offset: 14, maxWidth: "280px" })
@@ -146,8 +160,8 @@ function addVenueLayers(maplibregl) {
       .setDOMContent(popupContent(venue, section, latest.selected.has(code), latest))
       .addTo(map);
   });
-  map.on("mouseenter", "venues", () => { map.getCanvas().style.cursor = "pointer"; });
-  map.on("mouseleave", "venues", () => { map.getCanvas().style.cursor = ""; });
+  map.on("mouseenter", "venue-hits", () => { map.getCanvas().style.cursor = "pointer"; });
+  map.on("mouseleave", "venue-hits", () => { map.getCanvas().style.cursor = ""; });
 }
 
 export async function renderMap(element, model, { selected, onShowVenue, onToggleVenue }) {
