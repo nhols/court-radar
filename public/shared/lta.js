@@ -50,7 +50,9 @@ export function normalizeLta(payload, venue, date, today = londonToday()) {
     };
   }
 
+  // Some venues list padel or pickleball courts alongside tennis ones.
   const details = [...(payload.venueDetails || [])]
+    .filter((court) => !/padel|pickleball/i.test(court.name))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const bookingUrl = bookingUrlForDate(venue, date);
 

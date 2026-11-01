@@ -535,7 +535,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   text-align: left;
 }
 
-.court-short { font-size: 12px; font-weight: 750; white-space: nowrap; }
+.court-short { display: block; overflow: hidden; font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
 .court-short small { margin-left: 4px; color: var(--muted); font-size: 9px; font-weight: 700; }
 
 .collapse-all {

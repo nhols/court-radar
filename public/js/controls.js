@@ -100,8 +100,7 @@ export function createControls(actions) {
     if (input) actions.toggleVenue(input.dataset.code, input.checked);
   });
   $("#venues-panel").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-venues]");
-    if (button) actions.setVenuePreset(button.dataset.venues);
+    if (event.target.closest("[data-clear-venues]")) actions.clearVenues();
   });
 
   $("#hours-panel").addEventListener("click", (event) => {

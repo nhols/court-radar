@@ -173,3 +173,15 @@ test("normalizeLta reports venues without public availability as errors", () => 
     /no public availability/
   );
 });
+
+test("normalizeLta leaves out padel and pickleball courts", () => {
+  const result = normalizeLta({
+    venueDetails: [
+      { id: "t1", name: "Tennis 1 (lit 5pm>)", order: 1, surface: "Hard", availableSlots: [] },
+      { id: "p1", name: "Padel (lit 5pm>)", order: 2, surface: "Other", availableSlots: [] }
+    ],
+    rules: { outsideBookingWindow: false, availableDates: [TODAY] },
+    error: { hasError: false }
+  }, venueByCode("BE"), TODAY, TODAY);
+  assert.deepEqual(result.courts.map((court) => court.id), ["t1"]);
+});

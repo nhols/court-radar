@@ -98,7 +98,7 @@ function courtRow(section, row, columns, { hours, pastBefore, date, columnTotals
   }).join("");
 
   // Court labels are shortened to "1 H"; the full name and surface are in the hover text.
-  const shortName = row.court.name.replace(/^court\s*/i, "");
+  const shortName = row.court.name.match(/\d+/)?.[0] ?? row.court.name.slice(0, 3);
   return `<tr class="court-row"><th scope="row" class="court-label" title="${escapeHtml(`${row.court.name} · ${row.court.surface}`)}">
     <span class="court-short">${escapeHtml(shortName)}<small>${escapeHtml(row.court.surface[0].toUpperCase())}</small></span>
   </th>${cells}</tr>`;

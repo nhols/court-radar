@@ -1,4 +1,3 @@
-import { VENUES } from "../shared/venues.js";
 import { addDays, daysBetween, londonHour, londonToday } from "../shared/dates.js";
 import { buildSearch, defaultDate, initialState, isSelectableDate, writeStored } from "./prefs.js";
 import { MAX_AGE_MS, loadVenue } from "./loader.js";
@@ -210,12 +209,8 @@ function requestPosition() {
 const actions = {
   setDate,
   toggleVenue,
-  setVenuePreset(preset) {
-    const codes = preset === "all"
-      ? VENUES.map((venue) => venue.code)
-      : [];
-    state.venues = new Set(codes);
-    load();
+  clearVenues() {
+    state.venues = new Set();
     commit();
   },
   setHours(hours) {
@@ -317,16 +312,25 @@ function refreshStale() {
 document.addEventListener("visibilitychange", refreshStale);
 
 // On phones the bar slides away while scrolling down the grid and
-// comes back on the way up, so the grid gets the whole screen.
+// comes back on the way up, so the grid gets the whole screen. Showing or
+// hiding the bar resizes the grid, which itself scrolls it (especially at the
+// bottom), so scroll events are ignored until the slide has finished.
 const phone = window.matchMedia("(max-width: 640px)");
 let lastScrollTop = 0;
+let barLockedUntil = 0;
+function setBarHidden(hidden) {
+  if (elements.app.classList.contains("bar-hidden") === hidden) return;
+  elements.app.classList.toggle("bar-hidden", hidden);
+  barLockedUntil = Date.now() + 400;
+}
 elements.grid.addEventListener("scroll", () => {
   const top = elements.grid.scrollTop;
-  if (phone.matches) {
-    if (top > lastScrollTop + 8 && top > 60) elements.app.classList.add("bar-hidden");
-    else if (top < lastScrollTop - 8 || top < 20) elements.app.classList.remove("bar-hidden");
-  } else {
-    elements.app.classList.remove("bar-hidden");
+  if (!phone.matches) {
+    setBarHidden(false);
+  } else if (Date.now() >= barLockedUntil) {
+    const atBottom = top + elements.grid.clientHeight >= elements.grid.scrollHeight - 4;
+    if (top > lastScrollTop + 8 && top > 60) setBarHidden(true);
+    else if (top < 20 || (top < lastScrollTop - 8 && !atBottom)) setBarHidden(false);
   }
   lastScrollTop = top;
 }, { passive: true });
