@@ -35,13 +35,12 @@ function venueStatus(section) {
         venue.source === "mindbody" ? " for Member Plus" : ""}</span>`;
     case "closed":
       return `<span class="status status-later">${escapeHtml(result.note)}</span>`;
-    default: {
-      const bits = [section.courts.length
+    // Member Plus-only slots are shown by their pale orange cells, so the
+    // venue row doesn't repeat it.
+    default:
+      return section.courts.length
         ? `<span class="status">${plural(section.free, "open hour")}</span>`
-        : '<span class="status">No courts listed</span>'];
-      if (result.note) bits.push(`<span class="status status-note">${escapeHtml(result.note)}</span>`);
-      return bits.join("");
-    }
+        : '<span class="status">No courts listed</span>';
   }
 }
 

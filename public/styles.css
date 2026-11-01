@@ -673,7 +673,7 @@ tbody.venue + tbody.venue .venue-row th { border-top: 3px solid var(--ink); }
 }
 
 .status { color: var(--ink); font-weight: 700; }
-.status-error, .status-note { color: #9b4a2f; }
+.status-error { color: #9b4a2f; }
 .status-later { color: var(--green); }
 .status-loading { color: var(--muted); }
 
