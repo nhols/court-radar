@@ -213,8 +213,28 @@ function tooltipContent(cell) {
 }
 
 // Event handling is attached once; the table inside is replaced on every render.
-export function attachGridInteractions(container, tooltip, onAction) {
+// Scrolls a venue's header into view, but only if it's out of sight.
+export function scrollVenueIntoView(container, code) {
+  const body = container.querySelector(`tbody[data-venue="${CSS.escape(code)}"]`);
+  const head = container.querySelector("thead");
+  if (!body) return;
+  const top = body.offsetTop - (head?.offsetHeight || 0);
+  const visibleTop = container.scrollTop;
+  const visibleBottom = visibleTop + container.clientHeight - (head?.offsetHeight || 0);
+  const header = body.querySelector(".venue-row");
+  if (top >= visibleTop && top + (header?.offsetHeight || 0) <= visibleBottom) return;
+  container.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+// Marks a venue's rows, or clears the mark when `code` is null.
+export function highlightGridVenue(container, code) {
+  container.querySelectorAll("tbody.is-linked").forEach((body) => body.classList.remove("is-linked"));
+  if (code) container.querySelector(`tbody[data-venue="${CSS.escape(code)}"]`)?.classList.add("is-linked");
+}
+
+export function attachGridInteractions(container, tooltip, onAction, onHoverVenue = () => {}) {
   let hovered = null;
+  let hoveredVenue = null;
   const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
 
   const clearHighlight = () => {
@@ -232,6 +252,11 @@ export function attachGridInteractions(container, tooltip, onAction) {
   });
 
   container.addEventListener("pointerover", (event) => {
+    const venue = event.target.closest("tbody[data-venue]")?.dataset.venue || null;
+    if (venue !== hoveredVenue) {
+      hoveredVenue = venue;
+      onHoverVenue(venue);
+    }
     const cell = event.target.closest("td[data-hour], th.time-label, th.court-label");
     if (!cell) {
       clearHighlight();
@@ -274,6 +299,8 @@ export function attachGridInteractions(container, tooltip, onAction) {
   });
 
   container.addEventListener("pointerleave", () => {
+    hoveredVenue = null;
+    onHoverVenue(null);
     clearHighlight();
     hideTooltip();
   });

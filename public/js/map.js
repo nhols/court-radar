@@ -112,6 +112,20 @@ let latest = null;
 
 function addVenueLayers(maplibregl) {
   map.addSource("venues", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  // A halo under the venue currently hovered here or in the grid.
+  map.addLayer({
+    id: "venue-highlight",
+    type: "circle",
+    source: "venues",
+    filter: ["==", ["get", "code"], ""],
+    paint: {
+      "circle-radius": 22,
+      "circle-color": "#ff7448",
+      "circle-opacity": 0.35,
+      "circle-stroke-width": 2.5,
+      "circle-stroke-color": "#15372c"
+    }
+  });
   map.addLayer({
     id: "venues",
     type: "circle",
@@ -146,13 +160,18 @@ function addVenueLayers(maplibregl) {
     paint: { "circle-radius": 22, "circle-opacity": 0 }
   });
 
-  map.on("click", "venue-hits", (event) => {
+  const nearestCode = (event) => {
     const distance = (feature) => {
       const point = map.project(feature.geometry.coordinates);
       return Math.hypot(point.x - event.point.x, point.y - event.point.y);
     };
-    const nearest = event.features.reduce((best, feature) => (distance(feature) < distance(best) ? feature : best));
-    const code = nearest.properties.code;
+    return event.features.reduce((best, feature) => (distance(feature) < distance(best) ? feature : best))
+      .properties.code;
+  };
+
+  map.on("click", "venue-hits", (event) => {
+    const code = nearestCode(event);
+    latest.onPickVenue?.(code);
     const venue = VENUES.find((item) => item.code === code);
     const section = latest.model.sections.find((item) => item.venue.code === code);
     new maplibregl.Popup({ offset: 14, maxWidth: "280px" })
@@ -160,11 +179,32 @@ function addVenueLayers(maplibregl) {
       .setDOMContent(popupContent(venue, section, latest.selected.has(code), latest))
       .addTo(map);
   });
-  map.on("mouseenter", "venue-hits", () => { map.getCanvas().style.cursor = "pointer"; });
-  map.on("mouseleave", "venue-hits", () => { map.getCanvas().style.cursor = ""; });
+  let hovered = null;
+  map.on("mousemove", "venue-hits", (event) => {
+    map.getCanvas().style.cursor = "pointer";
+    const code = nearestCode(event);
+    if (code === hovered) return;
+    hovered = code;
+    highlightMapVenue(code);
+    latest.onHoverVenue?.(code);
+  });
+  map.on("mouseleave", "venue-hits", () => {
+    map.getCanvas().style.cursor = "";
+    hovered = null;
+    highlightMapVenue(null);
+    latest.onHoverVenue?.(null);
+  });
 }
 
-export async function renderMap(element, model, { selected, onShowVenue, onToggleVenue }) {
+// Rings a venue on the map, or clears the ring when `code` is null.
+export function highlightMapVenue(code) {
+  if (map?.getLayer("venue-highlight")) {
+    map.setFilter("venue-highlight", ["==", ["get", "code"], code || ""]);
+  }
+}
+
+export async function renderMap(element, model, handlers) {
+  const { selected } = handlers;
   let maplibregl;
   try {
     maplibregl = await loadMapLibre();
@@ -173,7 +213,7 @@ export async function renderMap(element, model, { selected, onShowVenue, onToggl
     return;
   }
 
-  latest = { model, selected, onShowVenue, onToggleVenue };
+  latest = { model, ...handlers };
   if (!map) {
     element.replaceChildren();
     map = new maplibregl.Map({ container: element, style: STYLE, center: [-0.151, 51.449], zoom: 11.5 });
@@ -189,8 +229,8 @@ export async function renderMap(element, model, { selected, onShowVenue, onToggl
       const bounds = new maplibregl.LngLatBounds();
       points.forEach((venue) => bounds.extend([venue.lng, venue.lat]));
       map.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+      fitted = true;
     }
-    fitted = true;
   }
   requestAnimationFrame(() => map.resize());
 }

@@ -1,7 +1,7 @@
 {
   "name": "Court Radar",
   "short_name": "Court Radar",
-  "description": "Live tennis court availability across South London, in one grid.",
+  "description": "Live tennis court availability across London, in one grid.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

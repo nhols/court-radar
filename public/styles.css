@@ -902,6 +902,23 @@ tbody.flash .venue-row th { animation: flash 1.4s ease-out; }
 .book-link svg { width: 13px; height: 13px; }
 tbody.venue + tbody.venue .venue-row th { border-top-width: 2px; }
 
+/* Wide screens: grid on the left, map on the right, no toggle. */
+@media (min-width: 768px) {
+  .app.split .view-toggle { display: none; }
+
+  .app.split .stage {
+    display: grid;
+    grid-template-columns: fit-content(62%) minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .app.split .grid-scroller { width: auto; margin-inline: 0; }
+}
+
+/* The venue being hovered on the map. */
+tbody.is-linked .venue-row th { background: #f1fcc4; }
+tbody.is-linked .court-label { background: #f8fde4; }
+
 /* Small screens */
 
 @media (max-width: 640px) {

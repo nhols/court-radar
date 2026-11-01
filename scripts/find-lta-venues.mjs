@@ -1,4 +1,4 @@
-// Finds LTA court-booking venues across South London and writes them to
+// Finds every LTA court-booking venue across Greater London and writes them to
 // public/shared/lta-venues.js. LTA's court search is a server-rendered page,
 // so this reads its result cards, follows the pagination, then reads each
 // venue page for its coordinates.
@@ -17,24 +17,16 @@ const OUTPUT = path.join(ROOT, "public/shared/lta-venues.js");
 const SEARCH_URL = "https://www.lta.org.uk/play/book-a-tennis-court/";
 const AVAILABILITY_URL = "https://www.lta.org.uk/api/courtdetail/availability";
 
-// Search from several points so the 30-result radius covers the whole area.
-const CENTRES = [
-  ["Clapham", 51.4618, -0.1383],
-  ["Wandsworth", 51.4571, -0.1925],
-  ["Putney", 51.4613, -0.2166],
-  ["Wimbledon", 51.4214, -0.2064],
-  ["Tooting", 51.4275, -0.168],
-  ["Streatham", 51.428, -0.13],
-  ["Brixton", 51.4613, -0.1156],
-  ["Dulwich", 51.445, -0.085],
-  ["Battersea", 51.479, -0.157],
-  ["Kennington", 51.488, -0.111],
-  ["Peckham", 51.47, -0.069],
-  ["Norbury", 51.411, -0.118]
-];
-
-// Roughly Putney to Peckham, Vauxhall to Norbury.
-const AREA = { south: 51.4, north: 51.495, west: -0.245, east: -0.055 };
+// LTA's search returns about 30 venues around a point, so search from a grid
+// of points roughly 4 km apart covering Greater London.
+const LONDON = { south: 51.29, north: 51.69, west: -0.51, east: 0.33 };
+const STEP = { lat: 0.036, lng: 0.058 };
+const CENTRES = [];
+for (let lat = LONDON.south; lat <= LONDON.north; lat += STEP.lat) {
+  for (let lng = LONDON.west; lng <= LONDON.east; lng += STEP.lng) {
+    CENTRES.push([`${lat.toFixed(3)},${lng.toFixed(3)}`, Number(lat.toFixed(4)), Number(lng.toFixed(4))]);
+  }
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -109,31 +101,46 @@ function makeCode(venue, used) {
   for (let index = 2; ; index += 1) if (!used.has(`${initials}${index}`)) return `${initials}${index}`;
 }
 
-const byId = new Map();
-for (const centre of CENTRES) {
-  for (const venue of await search(centre)) byId.set(venue.id, venue);
-  console.error(`${centre[0]}: ${byId.size} venues so far`);
+// Runs `task` over `items`, a few at a time, to be gentle with LTA.
+async function mapLimit(items, limit, task) {
+  const results = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: limit }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await task(items[index], index);
+    }
+  }));
+  return results;
 }
+
+const byId = new Map();
+await mapLimit(CENTRES, 3, async (centre, index) => {
+  for (const venue of await search(centre)) byId.set(venue.id, venue);
+  if (index % 20 === 0) console.error(`searched ${index + 1} of ${CENTRES.length} points: ${byId.size} venues so far`);
+});
+console.error(`found ${byId.size} venues; checking each one`);
 
 const codes = existingCodes();
 // Codes used by hand-written venues in venues.js must not be reused.
 const used = new Set([...codes.values(), "FR", "KGP", "LG", "TC", "WC", "WP"]);
 const venues = [];
-for (const venue of byId.values()) {
-  const point = await coordinates(venue);
-  await sleep(200);
+const checked = await mapLimit([...byId.values()], 4, async (venue) => {
+  const point = await coordinates(venue).catch(() => null);
   if (!point) {
     console.error(`skip ${venue.name}: no coordinates`);
-    continue;
+    return null;
   }
-  if (point.lat < AREA.south || point.lat > AREA.north || point.lng < AREA.west || point.lng > AREA.east) continue;
   if (!(await hasPublicAvailability(venue))) {
     console.error(`skip ${venue.name}: no public availability`);
-    continue;
+    return null;
   }
+  return { ...venue, ...point };
+});
+for (const venue of checked.filter(Boolean).sort((a, b) => a.name.localeCompare(b.name))) {
   const code = codes.get(venue.id) || makeCode(venue, used);
   used.add(code);
-  venues.push({ code, ...venue, ...point });
+  venues.push({ code, ...venue });
 }
 
 venues.sort((a, b) => a.name.localeCompare(b.name));

@@ -2,9 +2,16 @@ import { addDays, daysBetween, londonHour, londonToday } from "../shared/dates.j
 import { buildSearch, defaultDate, initialState, isSelectableDate, writeStored } from "./prefs.js";
 import { MAX_AGE_MS, loadVenue } from "./loader.js";
 import { buildGrid, surfacesIn } from "./model.js";
-import { attachGridInteractions, renderGrid, revealVenue, scrollToHour } from "./grid.js";
+import {
+  attachGridInteractions,
+  highlightGridVenue,
+  renderGrid,
+  revealVenue,
+  scrollToHour,
+  scrollVenueIntoView
+} from "./grid.js";
 import { createControls } from "./controls.js";
-import { renderMap } from "./map.js";
+import { highlightMapVenue, renderMap } from "./map.js";
 
 
 const storage = (() => {
@@ -22,6 +29,10 @@ let position = null;
 let renderQueued = false;
 let scrolledFor = null;
 let hasRendered = false;
+const wideScreen = window.matchMedia("(min-width: 768px)");
+let hoverScrollTimer = null;
+let mapHoveredVenue = null;
+wideScreen.addEventListener("change", () => scheduleRender());
 
 const elements = {
   grid: document.querySelector("#grid-view"),
@@ -110,10 +121,15 @@ function render() {
   controls.update(state, { today: today(), surfaces: surfacesIn(results, state.venues) });
   renderFreshness();
 
-  elements.grid.hidden = state.view !== "grid";
-  elements.mapView.hidden = state.view !== "map";
+  // Wide screens show the grid and map side by side; phones toggle between them.
+  const split = wideScreen.matches;
+  const showGrid = split || state.view === "grid";
+  const showMap = split || state.view === "map";
+  elements.app.classList.toggle("split", split);
+  elements.grid.hidden = !showGrid;
+  elements.mapView.hidden = !showMap;
 
-  if (state.view === "grid") {
+  if (showGrid) {
     renderGrid(elements.grid, model, {
       date: state.date,
       hours: state.hours,
@@ -123,11 +139,24 @@ function render() {
       surface: state.surface
     });
     autoScroll(model);
-  } else {
+    // The grid is redrawn from scratch, so restore the mark from the map hover.
+    highlightGridVenue(elements.grid, mapHoveredVenue);
+  }
+  if (showMap) {
     renderMap(elements.map, model, {
       selected: state.venues,
       onShowVenue: showVenueInGrid,
-      onToggleVenue: toggleVenue
+      onToggleVenue: toggleVenue,
+      onHoverVenue: (code) => {
+        mapHoveredVenue = code;
+        highlightGridVenue(elements.grid, code);
+        // Resting on a pin brings its venue into view in the grid.
+        clearTimeout(hoverScrollTimer);
+        if (code && split) hoverScrollTimer = setTimeout(() => scrollVenueIntoView(elements.grid, code), 350);
+      },
+      onPickVenue: (code) => {
+        if (split && state.venues.has(code)) revealVenue(elements.grid, code);
+      }
     });
   }
   hasRendered = true;
@@ -185,7 +214,7 @@ function toggleVenue(code, on) {
 }
 
 function showVenueInGrid(code) {
-  state.view = "grid";
+  if (!wideScreen.matches) state.view = "grid";
   state.collapsed.delete(code);
   commit();
   setTimeout(() => revealVenue(elements.grid, code), 50);
@@ -273,7 +302,7 @@ attachGridInteractions(elements.grid, elements.tooltip, (action, data) => {
     else state.collapsed.add(data.venue);
     commit();
   }
-});
+}, (code) => highlightMapVenue(code));
 
 elements.refresh.addEventListener("click", () => load({ force: true }));
 elements.share.addEventListener("click", async () => {

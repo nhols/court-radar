@@ -2,7 +2,7 @@
   "name": "court-radar",
   "version": "1.0.0",
   "private": true,
-  "description": "Live tennis court availability across South London, in one grid.",
+  "description": "Live tennis court availability across London, in one grid.",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
