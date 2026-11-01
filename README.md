@@ -18,8 +18,8 @@ Live at [court-radar-london.pages.dev](https://court-radar-london.pages.dev/).
 - **Nothing is more than 60 seconds old.** The API caches each venue and date
   for 60 seconds in Cloudflare's cache, so many visitors cost the booking
   systems one request a minute. If a booking system stops answering, the venue
-  shows an error rather than old availability. The page refetches anything over
-  a minute old while it's on screen.
+  shows an error rather than old availability. Anything over a minute old is
+  fetched again when you come back to the app, or when you press refresh.
 - **Choices are remembered.** Every change (venues, date, hours, surface,
   sort, view, collapsed venues) is saved in the browser and restored next
   time; a remembered date that has passed falls back to today. The view is

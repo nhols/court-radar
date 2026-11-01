@@ -295,8 +295,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// Courts get booked quickly, so anything over a minute old is fetched again
-// while the page is on screen, and as soon as a background tab comes back.
+// When the viewer comes back to the app, anything over a minute old is
+// fetched again. There's no timed refresh while the page sits on screen.
 function refreshStale() {
   if (document.visibilityState !== "visible" || !hasRendered) return;
   if (daysBetween(today(), state.date) < 0) {
@@ -311,30 +311,6 @@ function refreshStale() {
 }
 document.addEventListener("visibilitychange", refreshStale);
 
-// On phones the bar slides away while scrolling down the grid and
-// comes back on the way up, so the grid gets the whole screen. Showing or
-// hiding the bar resizes the grid, which itself scrolls it (especially at the
-// bottom), so scroll events are ignored until the slide has finished.
-const phone = window.matchMedia("(max-width: 640px)");
-let lastScrollTop = 0;
-let barLockedUntil = 0;
-function setBarHidden(hidden) {
-  if (elements.app.classList.contains("bar-hidden") === hidden) return;
-  elements.app.classList.toggle("bar-hidden", hidden);
-  barLockedUntil = Date.now() + 400;
-}
-elements.grid.addEventListener("scroll", () => {
-  const top = elements.grid.scrollTop;
-  if (!phone.matches) {
-    setBarHidden(false);
-  } else if (Date.now() >= barLockedUntil) {
-    const atBottom = top + elements.grid.clientHeight >= elements.grid.scrollHeight - 4;
-    if (top > lastScrollTop + 8 && top > 60) setBarHidden(true);
-    else if (top < 20 || (top < lastScrollTop - 8 && !atBottom)) setBarHidden(false);
-  }
-  lastScrollTop = top;
-}, { passive: true });
-setInterval(refreshStale, 15_000);
 setInterval(renderFreshness, 15_000);
 
 if (state.sort === "near") requestPosition();

@@ -856,6 +856,7 @@ tbody.flash .venue-row th { animation: flash 1.4s ease-out; }
 .topbar { padding: 6px var(--gutter); border-bottom: 0; }
 #freshness { display: none; }
 .brand-mark { width: 28px; height: 28px; }
+.brand-mark svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
 .freshness { margin: 0 4px; }
 .days { padding: 0 var(--gutter) 6px; }
 :is(.pill, .segmented) { height: 32px; }
@@ -938,8 +939,6 @@ tbody.venue + tbody.venue .venue-row th { border-top-width: 2px; }
   .grid-scroller, .map-view { border-width: 1px 0 0; border-radius: 0; }
   .venue-head { width: calc(100vw - 4px); }
 
-  /* The bar slides away while scrolling down the grid. */
-  .app.bar-hidden .bar { max-height: 0; border-bottom-width: 0; overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
