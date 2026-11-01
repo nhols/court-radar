@@ -105,3 +105,10 @@ test("with hiding on and no hours chosen, fully booked courts are hidden", () =>
   const model = buildGrid({ selected: new Set(["CC"]), results: withFull });
   assert.deepEqual(model.sections[0].courts.map((row) => row.court.id), ["c1"]);
 });
+
+test("open hours are also given as a share of the venue's court-hours", () => {
+  const model = buildGrid({ selected: new Set(["CC"]), results, hours: new Set([8, 9]), hideFull: false });
+  // 3 courts × 2 chosen hours = 6 court-hours, 4 of them open.
+  assert.equal(model.sections[0].free, 4);
+  assert.equal(model.sections[0].openShare, 67);
+});

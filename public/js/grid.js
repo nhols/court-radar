@@ -39,7 +39,8 @@ function venueStatus(section) {
     // venue row doesn't repeat it.
     default:
       return section.courts.length
-        ? `<span class="status">${plural(section.free, "open hour")}</span>`
+        ? `<span class="status">${plural(section.free, "open hour")}${
+          section.openShare == null ? "" : ` · ${section.openShare}%`}</span>`
         : '<span class="status">No courts listed</span>';
   }
 }

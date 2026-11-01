@@ -90,6 +90,11 @@ export function buildGrid({
       const counts = (row) => [...row.slots.keys()].filter((hour) => !hours.size || hours.has(hour)).length;
       section.free = section.courts.reduce((sum, row) => sum + counts(row), 0);
       section.freeCourts = section.courts.filter((row) => counts(row) > 0).length;
+      // Share of court-hours open: every court on the chosen surface (hidden
+      // full ones too) across the chosen hours, or the rest of the day.
+      const hoursInScope = (hours.size ? [...hours] : columns).filter((hour) => hour >= pastBefore).length;
+      const courtHours = surfaceCourts.length * hoursInScope;
+      section.openShare = courtHours ? Math.round((section.free / courtHours) * 100) : null;
     }
 
     sections.push(section);
